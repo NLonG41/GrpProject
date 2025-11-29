@@ -1,0 +1,17 @@
+{
+  "name": "usth-academic-suite",
+  "private": true,
+  "version": "1.0.0",
+  "description": "USTH Academic Assistant portal (frontend + backend)",
+  "workspaces": [
+    "portal-api"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace portal-api\"",
+    "dev:api": "npm run dev --workspace portal-api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
+

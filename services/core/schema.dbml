@@ -1,0 +1,100 @@
+// ERD exported from Prisma Schema
+// Use this at https://dbdiagram.io
+
+Table User {
+  id varchar [pk] [default: `value`]
+  email varchar [unique]
+  password varchar [default: `value`]
+  fullName varchar [unique]
+  cohort varchar
+  department varchar
+  createdAt timestamp [default: `value`]
+  updatedAt timestamp
+  classesTaught class
+  enrollments enrollment
+  sentNoti notification
+  requests request
+}
+
+Table Subject {
+  id varchar [pk]
+  name varchar
+  faculty varchar
+  createdAt timestamp [default: `value`]
+  updatedAt timestamp
+  classes class
+  requiredBy subjectprerequisite
+}
+
+Table SubjectPrerequisite {
+  id varchar [pk] [default: `value`]
+  subjectId varchar
+  subject subject
+  prerequisite subject
+}
+
+Table Room {
+  id varchar [pk]
+  name varchar [unique]
+  capacity integer
+  isMaintenance boolean [default: `value`]
+  createdAt timestamp [default: `value`]
+  updatedAt timestamp
+  schedules classschedule
+}
+
+Table Class {
+  id varchar [pk]
+  subjectId varchar
+  name varchar
+  currentEnrollment integer [default: `value`]
+  isActive boolean [default: `value`]
+  startDate timestamp
+  createdAt timestamp [default: `value`]
+  updatedAt timestamp
+  subject subject
+  lecturer user
+  schedules classschedule
+}
+
+Table Enrollment {
+  id varchar [pk] [default: `value`]
+  studentId varchar
+  registeredAt timestamp [default: `value`]
+  midtermScore float
+  totalGrade float
+  class class
+}
+
+Table ClassSchedule {
+  id varchar [pk] [default: `value`]
+  classId varchar
+  startTime timestamp
+  type scheduletype [default: `value`]
+  status schedulestatus [default: `value`]
+  createdAt timestamp [default: `value`]
+  class class
+  room room
+}
+
+Table Notification {
+  id varchar [pk] [default: `value`]
+  toUserId varchar
+  type varchar
+  message varchar [default: `value`]
+  createdAt timestamp [default: `value`]
+  toUser user
+  fromUser user
+}
+
+Table Request {
+  id varchar [pk] [default: `value`]
+  senderId varchar
+  status requeststatus [default: `value`]
+  payload json
+  createdAt timestamp [default: `value`]
+  updatedAt timestamp
+  sender user
+}
+
+// Relationships

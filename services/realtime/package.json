@@ -1,0 +1,29 @@
+{
+  "name": "realtime",
+  "version": "1.0.0",
+  "description": "Responsibilities:\r - Consume events from Service A (room status, notifications).\r - Update Firestore documents such as `live_rooms/{roomId}` with real-time occupancy.\r - Manage student notification collection (read by client apps).\r - Provide optional HTTP endpoints `/rt/notify`, `/rt/rooms/:id` for manual overrides/testing.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon --watch src --exec ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.6.0",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.10.1",
+    "nodemon": "^3.1.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# Firebase credentials
+*firebase-adminsdk*.json
+web-portal-us-firebase-adminsdk*.json
+
+# Build outputs
+dist/
+build/
+*.map
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+prisma/migrations/.migrate/
+
+# Test files
+test-firestore.ts
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+
+# Database
+*.db
+*.sqlite
+
+# Coverage
+coverage/
+.nyc_output/
+

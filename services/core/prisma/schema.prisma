@@ -1,0 +1,174 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  ASSISTANT
+  LECTURER
+  STUDENT
+}
+
+enum RequestType {
+  REQ_LEAVE
+  REQ_MAKEUP
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ScheduleType {
+  MAIN
+  MAKEUP
+  EXAM
+}
+
+enum ScheduleStatus {
+  ACTIVE
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  password     String
+  role         Role     @default(STUDENT)
+  fullName     String
+  studentCode  String?  @unique
+  cohort       String?
+  major        String?
+  department   String?
+  specialty    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  classesTaught Class[]         @relation("ClassLecturer")
+  enrollments   Enrollment[]
+  notifications Notification[]  @relation("NotificationReceiver")
+  sentNoti      Notification[]  @relation("NotificationSender")
+  requests      Request[]       @relation("LecturerRequests")
+}
+
+model Subject {
+  id           String   @id
+  name         String
+  credits      Int
+  faculty      String
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  classes         Class[]
+  prerequisites   SubjectPrerequisite[] @relation("SubjectPrerequisiteSubject")
+  requiredBy      SubjectPrerequisite[] @relation("SubjectPrerequisiteRequirement")
+}
+
+model SubjectPrerequisite {
+  id             String  @id @default(uuid())
+  subjectId      String
+  prerequisiteId String
+
+  subject      Subject @relation("SubjectPrerequisiteSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+  prerequisite Subject @relation("SubjectPrerequisiteRequirement", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+}
+
+model Room {
+  id            String   @id
+  name          String   @unique
+  capacity      Int
+  location      String
+  isMaintenance Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  schedules ClassSchedule[]
+}
+
+model Class {
+  id                String   @id
+  subjectId         String
+  lecturerId        String
+  name              String
+  maxCapacity       Int
+  currentEnrollment Int      @default(0)
+  isActive          Boolean  @default(true)
+  startDate         DateTime
+  endDate           DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  lecturer  User    @relation("ClassLecturer", fields: [lecturerId], references: [id])
+  schedules ClassSchedule[]
+  enrollments Enrollment[]
+}
+
+model Enrollment {
+  id            String   @id @default(uuid())
+  studentId     String
+  classId       String
+  registeredAt  DateTime @default(now())
+  midtermScore  Float?
+  finalScore    Float?
+  totalGrade    Float?
+
+  student User  @relation(fields: [studentId], references: [id])
+  class   Class @relation(fields: [classId], references: [id])
+
+  @@unique([studentId, classId])
+}
+
+model ClassSchedule {
+  id        String         @id @default(uuid())
+  classId   String
+  roomId    String
+  startTime DateTime
+  endTime   DateTime
+  type      ScheduleType   @default(MAIN)
+  status    ScheduleStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+
+  class Class @relation(fields: [classId], references: [id])
+  room  Room  @relation(fields: [roomId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  toUserId  String
+  fromUserId String
+  type      String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  toUser   User @relation("NotificationReceiver", fields: [toUserId], references: [id])
+  fromUser User @relation("NotificationSender", fields: [fromUserId], references: [id])
+}
+
+model Request {
+  id         String        @id @default(uuid())
+  senderId   String
+  type       RequestType
+  status     RequestStatus @default(PENDING)
+  payload    Json
+  adminNote  String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  sender User @relation("LecturerRequests", fields: [senderId], references: [id])
+}
