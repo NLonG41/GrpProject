@@ -9,7 +9,6 @@ Responsibilities:
 - Apply rate limiting / headers if necessary.
 
 Planned files:
-- `Dockerfile` – containerized Nginx.
 - `nginx.conf` – upstream definitions for core/realtime services.
 
 Implementation will be added once the services are ready.
