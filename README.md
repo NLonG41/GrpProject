@@ -137,12 +137,15 @@ curl -X POST http://localhost:4000/api/auth/register ^
 
 ## 📚 Tài liệu thêm
 
+> ⭐ **Bắt đầu từ đây**: [DOCUMENTATION_GUIDE.md](./DOCUMENTATION_GUIDE.md) - Hướng dẫn đọc tất cả tài liệu theo thứ tự ưu tiên
+
 - **[QUICK_START.md](./QUICK_START.md)** - Hướng dẫn nhanh 5 phút
 - **[SETUP_GUIDE.md](./SETUP_GUIDE.md)** - Hướng dẫn setup chi tiết
-- **[NEON_DB_SETUP.md](./NEON_DB_SETUP.md)** - Setup Neon Database
+- **[readme/ARCHITECTURE.md](./readme/ARCHITECTURE.md)** - Kiến trúc hệ thống chi tiết
 - **[RUN_SQL.md](./RUN_SQL.md)** - Hướng dẫn chạy SQL script
-- **[NEON_ARCHITECTURE.md](./NEON_ARCHITECTURE.md)** - Kiến trúc Neon Database
+- **[DATABASE_ARCHITECTURE_RECOMMENDATION.md](./DATABASE_ARCHITECTURE_RECOMMENDATION.md)** - Kiến trúc Database
 - **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Xử lý sự cố
+- **[FEATURES_IMPLEMENTATION.md](./FEATURES_IMPLEMENTATION.md)** - Các tính năng đã triển khai
 
 ## 🏗️ Kiến trúc tổng quan
 
