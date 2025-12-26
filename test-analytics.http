@@ -1,0 +1,21 @@
+### Test Analytics Dashboard API
+### GET /api/analytics/dashboard
+
+@baseUrl = http://localhost:4000
+@userId = YOUR_ASSISTANT_USER_ID_HERE
+
+### ============================================
+### ANALYTICS DASHBOARD
+### ============================================
+
+### GET /api/analytics/dashboard - Get dashboard analytics (Assistant only)
+GET {{baseUrl}}/api/analytics/dashboard
+x-user-id: {{userId}}
+
+### Test without authentication (should fail)
+GET {{baseUrl}}/api/analytics/dashboard
+
+### Test with non-assistant user (should fail)
+GET {{baseUrl}}/api/analytics/dashboard
+x-user-id: STUDENT_USER_ID_HERE
+

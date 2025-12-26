@@ -1,0 +1,122 @@
+### Test API Endpoints
+### Sử dụng với REST Client extension trong VS Code hoặc dùng curl/Postman
+
+@baseUrl = http://localhost:5001
+@userId = YOUR_USER_ID_HERE
+
+### ============================================
+### 1. HEALTH CHECK
+### ============================================
+
+GET {{baseUrl}}/health
+
+### ============================================
+### 2. AUTH - Register (POST)
+### ============================================
+
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Test Assistant",
+  "email": "test@usth.edu.vn",
+  "password": "test123456",
+  "role": "ASSISTANT"
+}
+
+### ============================================
+### 3. AUTH - Login (POST) - Legacy password
+### ============================================
+
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@usth.edu.vn",
+  "password": "test123456"
+}
+
+### ============================================
+### 4. AUTH - Firebase Login (POST)
+### ============================================
+### Cần Firebase ID token từ frontend
+
+POST {{baseUrl}}/api/auth/firebase-login
+Content-Type: application/json
+
+{
+  "idToken": "YOUR_FIREBASE_ID_TOKEN_HERE"
+}
+
+### ============================================
+### 5. USERS - Get All Users (GET)
+### ============================================
+
+GET {{baseUrl}}/api/users
+
+### ============================================
+### 6. USERS - Get Users by Role (GET)
+### ============================================
+
+GET {{baseUrl}}/api/users?role=ASSISTANT
+
+### ============================================
+### 7. USERS - Get User by ID/Email (GET)
+### ============================================
+
+GET {{baseUrl}}/api/users/test@usth.edu.vn
+
+### ============================================
+### 8. USERS - Create User (POST) - Requires Admin/Assistant
+### ============================================
+
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+x-user-id: {{userId}}
+
+{
+  "fullName": "New Student",
+  "email": "student001@usth.edu.vn",
+  "role": "STUDENT",
+  "studentCode": "CS2022001",
+  "cohort": "2022",
+  "major": "CS",
+  "department": "Computer Science Department"
+}
+
+### ============================================
+### 9. USERS - Update User Role (PATCH) - Requires Admin/Assistant
+### ============================================
+
+PATCH {{baseUrl}}/api/users/{{userId}}/role
+Content-Type: application/json
+x-user-id: {{userId}}
+
+{
+  "role": "ASSISTANT"
+}
+
+### ============================================
+### 10. SUBJECTS - Get All Subjects (GET)
+### ============================================
+
+GET {{baseUrl}}/api/subjects
+
+### ============================================
+### 11. ROOMS - Get All Rooms (GET)
+### ============================================
+
+GET {{baseUrl}}/api/rooms
+
+### ============================================
+### 12. CLASSES - Get All Classes (GET)
+### ============================================
+
+GET {{baseUrl}}/api/classes
+
+### ============================================
+### 13. REQUESTS - Get All Requests (GET)
+### ============================================
+
+GET {{baseUrl}}/api/requests
+

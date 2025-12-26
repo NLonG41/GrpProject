@@ -8,13 +8,17 @@ export function useClasses() {
   const [error, setError] = useState<string | null>(null)
 
   const loadClasses = async () => {
+    console.log('[useClasses] Loading classes...')
     setLoading(true)
     setError(null)
     try {
       const data = await classesRepository.getAll()
+      console.log('[useClasses] ✅ Classes loaded:', { count: data.length })
       setClasses(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load classes')
+      const errorMsg = err instanceof Error ? err.message : 'Failed to load classes'
+      console.error('[useClasses] ❌ Error loading classes:', errorMsg)
+      setError(errorMsg)
     } finally {
       setLoading(false)
     }
@@ -22,6 +26,7 @@ export function useClasses() {
 
   useEffect(() => {
     loadClasses()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return {

@@ -11,32 +11,55 @@ export function useAuth() {
   const navigate = useNavigate()
 
   const login = async (email: string, password: string) => {
+    console.log('[useAuth] Login called', { email })
     setLoading(true)
     setError(null)
+    
     try {
+      console.log('[useAuth] Calling authRepository.login...')
       const response = await authRepository.login(email, password)
+      console.log('[useAuth] ✅ Login response received', {
+        userId: response.user.id,
+        email: response.user.email,
+        role: response.user.role,
+        fullName: response.user.fullName
+      })
+
+      // Temporarily allow all roles - no role check
+      console.log('[useAuth] User role:', { role: response.user.role })
+      console.log('[useAuth] ⚠️ Role check disabled - allowing all roles temporarily')
+      
+      console.log('[useAuth] Setting user and navigating...')
       setUser(response.user)
       
-      // Navigate based on role
-      const role = response.user.role
-      if (role === 'ADMIN' || role === 'ASSISTANT') {
-        navigate('/assistant', { replace: true })
-      } else if (role === 'STUDENT') {
-        navigate('/student', { replace: true })
-      } else if (role === 'LECTURER') {
-        navigate('/lecturer', { replace: true })
-      }
+      // Navigate to assistant for all roles
+      console.log('[useAuth] Navigating to /assistant for all roles')
+      navigate('/assistant', { replace: true })
       
+      console.log('[useAuth] ✅ Login completed successfully')
       return response
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[useAuth] ❌ Login error:', {
+        error: err,
+        code: err.code,
+        message: err.message,
+        name: err.name,
+        isApiError: err instanceof ApiError,
+        status: err.status,
+        data: err.data
+      })
+      
       const message =
         err instanceof ApiError
           ? err.message
-          : 'Đăng nhập thất bại. Vui lòng kiểm tra email và mật khẩu.'
+          : err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra email và mật khẩu.'
+      
+      console.error('[useAuth] Setting error message:', message)
       setError(message)
       throw err
     } finally {
       setLoading(false)
+      console.log('[useAuth] Login process finished, loading set to false')
     }
   }
 
@@ -44,7 +67,7 @@ export function useAuth() {
     fullName: string
     email: string
     password: string
-    role?: 'ADMIN' | 'ASSISTANT' | 'LECTURER' | 'STUDENT'
+    role?: 'ASSISTANT'
     studentCode?: string
     cohort?: string
     major?: string

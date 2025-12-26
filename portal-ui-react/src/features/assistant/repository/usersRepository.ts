@@ -20,5 +20,12 @@ export const usersRepository = {
   ): Promise<{ message: string; user: User }> {
     return api.updateUserRole(userId, role, adminUserId)
   },
+
+  async resetPassword(
+    userId: string,
+    adminUserId: string
+  ): Promise<{ message: string; credentials: { email: string; password: string } }> {
+    return api.resetUserPassword(userId, adminUserId)
+  },
 }
 

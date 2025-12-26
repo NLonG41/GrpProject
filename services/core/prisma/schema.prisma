@@ -23,6 +23,9 @@ enum Role {
 enum RequestType {
   REQ_LEAVE
   REQ_MAKEUP
+  ABSENCE_REQUEST
+  CLASS_SWAP
+  ENROLLMENT
 }
 
 enum RequestStatus {
@@ -40,6 +43,22 @@ enum ScheduleType {
 enum ScheduleStatus {
   ACTIVE
   CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum GradeItemType {
+  HOMEWORK
+  QUIZ
+  MIDTERM
+  FINAL
+  PROJECT
+  PARTICIPATION
 }
 
 model User {
@@ -61,20 +80,25 @@ model User {
   notifications Notification[]  @relation("NotificationReceiver")
   sentNoti      Notification[]  @relation("NotificationSender")
   requests      Request[]       @relation("LecturerRequests")
+  attendanceVerified Attendance[]
+  gradeRecords  GradeRecord[]
 }
 
 model Subject {
-  id           String   @id
-  name         String
-  credits      Int
-  faculty      String
-  description  String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String   @id
+  name            String
+  credits         Int
+  faculty         String
+  description     String?
+  numberOfSessions Int?    // Số buổi học cho môn học
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   classes         Class[]
   prerequisites   SubjectPrerequisite[] @relation("SubjectPrerequisiteSubject")
   requiredBy      SubjectPrerequisite[] @relation("SubjectPrerequisiteRequirement")
+
+  @@map("subject")
 }
 
 model SubjectPrerequisite {
@@ -84,6 +108,8 @@ model SubjectPrerequisite {
 
   subject      Subject @relation("SubjectPrerequisiteSubject", fields: [subjectId], references: [id], onDelete: Cascade)
   prerequisite Subject @relation("SubjectPrerequisiteRequirement", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+
+  @@map("subject_prerequisite")
 }
 
 model Room {
@@ -96,6 +122,8 @@ model Room {
   updatedAt     DateTime @updatedAt
 
   schedules ClassSchedule[]
+
+  @@map("room")
 }
 
 model Class {
@@ -115,6 +143,9 @@ model Class {
   lecturer  User    @relation("ClassLecturer", fields: [lecturerId], references: [id])
   schedules ClassSchedule[]
   enrollments Enrollment[]
+  gradeItems GradeItem[]
+
+  @@map("class")
 }
 
 model Enrollment {
@@ -128,8 +159,11 @@ model Enrollment {
 
   student User  @relation(fields: [studentId], references: [id])
   class   Class @relation(fields: [classId], references: [id])
+  attendance Attendance[]
+  gradeRecords GradeRecord[]
 
   @@unique([studentId, classId])
+  @@map("enrollment")
 }
 
 model ClassSchedule {
@@ -144,6 +178,9 @@ model ClassSchedule {
 
   class Class @relation(fields: [classId], references: [id])
   room  Room  @relation(fields: [roomId], references: [id])
+  attendance Attendance[]
+
+  @@map("class_schedule")
 }
 
 model Notification {
@@ -158,6 +195,8 @@ model Notification {
 
   toUser   User @relation("NotificationReceiver", fields: [toUserId], references: [id])
   fromUser User @relation("NotificationSender", fields: [fromUserId], references: [id])
+
+  @@map("notification")
 }
 
 model Request {
@@ -171,4 +210,52 @@ model Request {
   updatedAt  DateTime      @updatedAt
 
   sender User @relation("LecturerRequests", fields: [senderId], references: [id])
+
+  @@map("request")
+}
+
+model GradeItem {
+  id        String        @id @default(uuid())
+  classId   String
+  name      String
+  maxScore  Float
+  weight    Float
+  type      GradeItemType
+  createdAt DateTime      @default(now())
+
+  class       Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  gradeRecords GradeRecord[]
+
+  @@map("grade_item")
+}
+
+model Attendance {
+  id          String          @id @default(uuid())
+  enrollmentId String
+  scheduleId  String
+  status      AttendanceStatus
+  timestamp   DateTime        @default(now())
+  verifiedBy  String?
+
+  enrollment Enrollment      @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  schedule   ClassSchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  verifier   User?           @relation(fields: [verifiedBy], references: [id])
+
+  @@map("attendance")
+}
+
+model GradeRecord {
+  id          String    @id @default(uuid())
+  enrollmentId String
+  gradeItemId String
+  score       Float?
+  gradedAt    DateTime?
+  gradedBy    String?
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  gradeItem  GradeItem  @relation(fields: [gradeItemId], references: [id], onDelete: Cascade)
+  grader     User?      @relation(fields: [gradedBy], references: [id])
+
+  @@unique([enrollmentId, gradeItemId])
+  @@map("grade_record")
 }

@@ -1,6 +1,8 @@
 import { Router } from "express";
+import { Role } from "../generated/prisma/enums";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
+import { admin } from "../lib/firebase";
 import crypto from "crypto";
 
 const router = Router();
@@ -17,7 +19,7 @@ const registerSchema = z.object({
   fullName: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(6),
-  role: z.enum(["ADMIN", "ASSISTANT", "LECTURER", "STUDENT"]).default("STUDENT"),
+  role: z.nativeEnum(Role).default(Role.STUDENT),
   studentCode: z.string().optional(),
   cohort: z.string().optional(),
   major: z.string().optional(),
@@ -51,6 +53,25 @@ router.post("/register", async (req, res) => {
         return res.status(409).json({ error: "Email or studentCode already exists" });
       }
 
+      // Create user in Firebase Auth (if Firebase is configured)
+      let firebaseUid: string | null = null;
+      if (admin.apps.length > 0) {
+        try {
+          const firebaseUser = await admin.auth().createUser({
+            email: data.email,
+            password: data.password,
+            displayName: data.fullName,
+          });
+          firebaseUid = firebaseUser.uid;
+        } catch (firebaseError: any) {
+          // If Firebase user already exists, continue with database creation
+          if (firebaseError.code !== "auth/email-already-exists") {
+            console.warn("[firebase] Failed to create Firebase user:", firebaseError);
+          }
+        }
+      }
+
+      // Create user in database
       const user = await prisma.user.create({
         data: {
           email: data.email,
@@ -202,6 +223,101 @@ router.post("/change-password", async (req, res) => {
 
 // Import generatePassword from users route
 import { generatePassword } from "./users";
+
+/**
+ * POST /api/auth/firebase-login
+ * Login with Firebase ID token
+ */
+router.post("/firebase-login", async (req, res) => {
+  console.log("[auth] POST /api/auth/firebase-login called");
+  const { idToken } = req.body;
+
+  if (!idToken) {
+    console.error("[auth] ❌ Missing idToken in request body");
+    return res.status(400).json({ error: "idToken is required" });
+  }
+
+  console.log("[auth] Step 1: Checking Firebase Admin SDK...");
+  // Ensure Firebase Admin SDK is initialized
+  if (!admin.apps.length) {
+    console.error("[auth] ❌ Firebase Admin SDK not initialized");
+    return res.status(503).json({ error: "Firebase Admin SDK not initialized" });
+  }
+  console.log("[auth] ✅ Firebase Admin SDK is initialized");
+
+  try {
+    console.log("[auth] Step 2: Verifying Firebase ID token...", {
+      tokenLength: idToken.length,
+      tokenPreview: idToken.substring(0, 50) + "..."
+    });
+    
+    // Verify Firebase ID token
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    console.log("[auth] ✅ Token verified successfully", {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      emailVerified: decodedToken.email_verified
+    });
+    
+    const email = decodedToken.email;
+
+    if (!email) {
+      console.error("[auth] ❌ Email not found in decoded token");
+      return res.status(401).json({ error: "Email not found in token" });
+    }
+
+    console.log("[auth] Step 3: Looking up user in database...", { email });
+    // Get user from database
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      console.error("[auth] ❌ User not found in database", { email });
+      return res.status(404).json({ error: "User not found. Please register first." });
+    }
+
+    console.log("[auth] ✅ User found in database", {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      fullName: user.fullName
+    });
+
+    const { password: _, ...userResponse } = user;
+    console.log("[auth] ✅ Login successful, sending response");
+    res.json({
+      user: userResponse,
+      message: "Login successful",
+    });
+  } catch (error: any) {
+    console.error("[auth] ❌ Firebase login error:", {
+      code: error.code,
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+    
+    // More detailed error messages
+    if (error.code === 'auth/argument-error') {
+      return res.status(400).json({ error: "Invalid token format" });
+    }
+    if (error.code === 'auth/id-token-expired') {
+      return res.status(401).json({ error: "Token expired. Please login again." });
+    }
+    if (error.code === 'auth/id-token-revoked') {
+      return res.status(401).json({ error: "Token revoked. Please login again." });
+    }
+    if (error.code === 'auth/invalid-id-token') {
+      return res.status(401).json({ error: "Invalid token. Please check Firebase configuration." });
+    }
+    
+    res.status(401).json({ 
+      error: "Invalid token", 
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    });
+  }
+});
 
 export { router as authRouter };
 

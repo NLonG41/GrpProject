@@ -1,37 +1,68 @@
 # 🔧 Troubleshooting Guide
 
-Hướng dẫn xử lý các vấn đề thường gặp.
+Hướng dẫn xử lý các vấn đề thường gặp với Neon Database architecture.
 
 ## ❌ Vấn Đề Thường Gặp
 
-### 1. Docker không chạy
+### 1. Core Service không kết nối được Neon Database
 
 **Triệu chứng:**
-```
-Cannot connect to the Docker daemon
+```json
+{
+  "status": "ok",
+  "db": "unreachable"
+}
 ```
 
 **Giải pháp:**
-- **Windows/Mac**: Mở Docker Desktop và đợi nó khởi động hoàn toàn
-- **Linux**: 
-  ```bash
-  sudo systemctl start docker
-  sudo systemctl enable docker
-  ```
+
+1. **Kiểm tra connection string trong `.env`:**
+   ```bash
+   cd services/core
+   cat .env | grep DATABASE_URL
+   ```
+
+2. **Đảm bảo connection string đúng format:**
+   ```env
+   DATABASE_URL=postgresql://neondb_owner:password@ep-xxx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+   ```
+   - Phải có `sslmode=require`
+   - Phải có `channel_binding=require`
+   - Password không có ký tự đặc biệt cần encode
+
+3. **Test connection:**
+   ```bash
+   node test-supabase-connection.js
+   # Hoặc
+   curl http://localhost:4000/health
+   ```
+
+4. **Kiểm tra Neon Dashboard:**
+   - Vào https://console.neon.tech/
+   - Kiểm tra project có đang active không
+   - Kiểm tra connection string có đúng không
+
+5. **Restart service sau khi sửa `.env`:**
+   ```bash
+   # Dừng service (Ctrl+C)
+   # Chạy lại
+   cd services/core
+   npm run dev
+   ```
 
 ### 2. Port đã được sử dụng
 
 **Triệu chứng:**
 ```
-Error: port 80 is already allocated
+Error: listen EADDRINUSE: address already in use :::4000
 ```
 
 **Giải pháp:**
 
 **Windows:**
 ```powershell
-# Tìm process đang dùng port 80
-netstat -ano | findstr :80
+# Tìm process đang dùng port 4000
+netstat -ano | findstr :4000
 # Kill process (thay PID bằng process ID)
 taskkill /PID <PID> /F
 ```
@@ -39,302 +70,366 @@ taskkill /PID <PID> /F
 **Mac/Linux:**
 ```bash
 # Tìm process
-lsof -i :80
+lsof -i :4000
 # Kill process
 kill -9 <PID>
 ```
 
-**Hoặc thay đổi port trong docker-compose.yml:**
-```yaml
-portal-ui:
-  ports:
-    - "8080:80"  # Thay vì 80:80
+**Hoặc thay đổi port trong `.env`:**
+```env
+PORT=4001
 ```
 
 ### 3. Firebase Authentication Failed
 
 **Triệu chứng:**
 ```
-Error in realtime-service logs: Firebase authentication error
+[firebase] Failed to initialize Firebase Admin: FirebaseAppError: Failed to parse private key
 ```
 
 **Giải pháp:**
 
-1. Kiểm tra file `.env`:
+1. **Kiểm tra file `.env`:**
    ```bash
-   cat .env
+   cd services/core
+   cat .env | grep FIREBASE_PRIVATE_KEY
    ```
 
-2. Đảm bảo format đúng:
+2. **Đảm bảo format đúng:**
    ```env
-   FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+   FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...\n-----END PRIVATE KEY-----\n"
    ```
    - Phải có dấu ngoặc kép `"`
    - Phải có `\n` giữa các dòng
    - Không có khoảng trắng thừa
+   - Toàn bộ key phải trên một dòng
 
-3. Kiểm tra logs chi tiết:
-   ```bash
-   docker-compose logs realtime-service
+3. **Kiểm tra các biến khác:**
+   ```env
+   FIREBASE_PROJECT_ID=web-portal-us
+   FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@web-portal-us.iam.gserviceaccount.com
    ```
 
-4. Restart service:
+4. **Test Firebase config:**
    ```bash
-   docker-compose restart realtime-service
+   node check-env.js
    ```
 
-### 4. Database Migration Failed
+5. **Restart service:**
+   ```bash
+   # Dừng và chạy lại
+   cd services/core
+   npm run dev
+   ```
+
+### 4. Database Schema không tồn tại
 
 **Triệu chứng:**
 ```
-Error: Migration failed in core-service logs
+Error: relation "User" does not exist
 ```
 
 **Giải pháp:**
 
-**Option 1: Reset database**
-```bash
-docker-compose down -v
-docker-compose up -d --build
-```
+1. **Chạy SQL script trong Neon SQL Editor:**
+   - Vào Neon Dashboard → SQL Editor
+   - Mở file `create-tables.sql`
+   - Copy toàn bộ nội dung
+   - Paste vào SQL Editor và click **Run**
 
-**Option 2: Chạy migrations thủ công**
-```bash
-docker-compose exec core-service npx prisma migrate deploy
-```
+2. **Hoặc chạy Prisma migrations:**
+   ```bash
+   cd services/core
+   npx prisma migrate deploy
+   ```
 
-**Option 3: Xem logs chi tiết**
-```bash
-docker-compose logs core-service
-```
+3. **Kiểm tra tables đã được tạo:**
+   - Vào Neon Dashboard → SQL Editor
+   - Chạy query:
+     ```sql
+     SELECT table_name FROM information_schema.tables 
+     WHERE table_schema = 'public';
+     ```
 
-### 5. Container Không Start
+### 5. API trả về 500 Error
 
 **Triệu chứng:**
-```
-Container exits immediately
+```json
+{
+  "status": "error",
+  "db": "unreachable"
+}
 ```
 
 **Giải pháp:**
 
-1. Xem logs:
+1. **Kiểm tra health endpoint:**
    ```bash
-   docker-compose logs <service-name>
+   curl http://localhost:4000/health
    ```
 
-2. Rebuild container:
-   ```bash
-   docker-compose build --no-cache <service-name>
-   docker-compose up -d <service-name>
-   ```
+2. **Kiểm tra logs trong terminal:**
+   - Xem terminal nơi chạy `npm run dev`
+   - Tìm lỗi cụ thể
 
-3. Kiểm tra Docker resources:
-   - Windows/Mac: Docker Desktop > Settings > Resources
-   - Đảm bảo có đủ RAM (tối thiểu 4GB)
+3. **Kiểm tra database connection:**
+   - Test connection: `node test-supabase-connection.js`
+   - Kiểm tra Neon Dashboard
 
-### 6. Không Truy Cập Được Frontend
+4. **Kiểm tra schema:**
+   - Đảm bảo đã chạy `create-tables.sql`
+   - Kiểm tra tables trong Neon Dashboard
+
+### 6. Frontend không kết nối được Backend
 
 **Triệu chứng:**
 ```
-Cannot access http://localhost
+Failed to fetch
+Network error
 ```
 
 **Giải pháp:**
 
-1. Kiểm tra container đang chạy:
+1. **Kiểm tra backend đang chạy:**
    ```bash
-   docker-compose ps portal-ui
+   curl http://localhost:4000/health
    ```
 
-2. Xem logs:
-   ```bash
-   docker-compose logs portal-ui
-   ```
+2. **Kiểm tra API URL trong frontend:**
+   - File: `portal-ui-react/src/shared/api/client.ts`
+   - Đảm bảo `BASE_URL` đúng: `http://localhost:4000`
 
-3. Kiểm tra port:
-   ```bash
-   # Windows
-   netstat -ano | findstr :80
-   
-   # Mac/Linux
-   lsof -i :80
-   ```
+3. **Kiểm tra CORS:**
+   - File: `services/core/src/app.ts`
+   - Đảm bảo CORS cho phép origin của frontend
 
-4. Thử rebuild:
-   ```bash
-   docker-compose build --no-cache portal-ui
-   docker-compose up -d portal-ui
-   ```
+4. **Kiểm tra port:**
+   - Backend: `http://localhost:4000`
+   - Frontend: `http://localhost:5173`
 
-### 7. PostgreSQL Connection Error
+### 7. Seed Users Script Failed
 
 **Triệu chứng:**
 ```
-Error: connect ECONNREFUSED postgres:5432
+Error: Failed to create user
 ```
 
 **Giải pháp:**
 
-1. Kiểm tra PostgreSQL container:
+1. **Kiểm tra database connection:**
    ```bash
-   docker-compose ps postgres
+   curl http://localhost:4000/health
    ```
 
-2. Xem logs:
-   ```bash
-   docker-compose logs postgres
-   ```
+2. **Kiểm tra Firebase config:**
+   - Đảm bảo Firebase credentials đúng trong `.env`
+   - Test: `node check-env.js`
 
-3. Đợi PostgreSQL sẵn sàng:
-   ```bash
-   # Kiểm tra health
-   docker-compose exec postgres pg_isready -U usth_user -d usth_academic
-   ```
+3. **Kiểm tra schema:**
+   - Đảm bảo table `User` đã được tạo
+   - Kiểm tra trong Neon Dashboard
 
-4. Restart:
-   ```bash
-   docker-compose restart postgres
-   # Đợi vài giây rồi restart core-service
-   docker-compose restart core-service
-   ```
+4. **Xem logs chi tiết:**
+   - Script sẽ hiển thị lỗi cụ thể trong terminal
 
-### 8. Out of Memory
+### 8. Frontend không compile
 
 **Triệu chứng:**
 ```
-Container killed: out of memory
+Failed to compile
+TypeScript errors
 ```
 
 **Giải pháp:**
 
-1. Tăng Docker memory limit:
-   - Windows/Mac: Docker Desktop > Settings > Resources > Memory
-   - Tăng lên ít nhất 4GB (khuyến nghị 8GB)
+1. **Kiểm tra TypeScript errors:**
+   - Xem terminal nơi chạy `npm run dev`
+   - Sửa các lỗi TypeScript
 
-2. Hoặc chạy ít services hơn:
+2. **Reinstall dependencies:**
    ```bash
-   # Chỉ chạy database và core-service
-   docker-compose up -d postgres core-service
+   cd portal-ui-react
+   rm -rf node_modules package-lock.json
+   npm install
    ```
 
-### 9. Build Failed
+3. **Kiểm tra Node version:**
+   ```bash
+   node --version
+   # Phải ≥ 18
+   ```
+
+### 9. Realtime Service không chạy
 
 **Triệu chứng:**
 ```
-Error during build process
+Realtime service không start
+Firebase error
 ```
 
 **Giải pháp:**
 
-1. Xóa cache và rebuild:
+1. **Kiểm tra `.env` trong `services/realtime/`:**
    ```bash
-   docker-compose build --no-cache
+   cd services/realtime
+   cat .env
    ```
 
-2. Kiểm tra disk space:
+2. **Đảm bảo Firebase config đúng:**
+   - `FIREBASE_PROJECT_ID`
+   - `FIREBASE_PRIVATE_KEY`
+   - `FIREBASE_CLIENT_EMAIL`
+
+3. **Kiểm tra logs:**
+   - Xem terminal nơi chạy `npm run dev`
+   - Tìm lỗi cụ thể
+
+4. **Restart service:**
    ```bash
-   # Windows
-   dir
-   
-   # Mac/Linux
-   df -h
+   # Dừng và chạy lại
+   cd services/realtime
+   npm run dev
    ```
 
-3. Xóa images cũ:
-   ```bash
-   docker system prune -a
-   ```
-
-### 10. Permission Denied (Linux)
+### 10. Health Check trả về 500 nhưng database reachable
 
 **Triệu chứng:**
-```
-Permission denied: /var/run/docker.sock
+```json
+{
+  "status": "error",
+  "db": "reachable"
+}
 ```
 
 **Giải pháp:**
 
-```bash
-# Thêm user vào docker group
-sudo usermod -aG docker $USER
+1. **Kiểm tra schema:**
+   - Đảm bảo tables đã được tạo
+   - Chạy `create-tables.sql` nếu chưa
 
-# Đăng xuất và đăng nhập lại, hoặc:
-newgrp docker
-```
+2. **Kiểm tra Prisma client:**
+   ```bash
+   cd services/core
+   npx prisma generate
+   ```
+
+3. **Restart service:**
+   ```bash
+   # Dừng và chạy lại
+   cd services/core
+   npm run dev
+   ```
 
 ## 🔍 Debug Commands
 
-### Xem tất cả logs
+### Test Database Connection
+
 ```bash
-docker-compose logs -f
+# Test Neon connection
+node test-supabase-connection.js
+
+# Test health endpoint
+curl http://localhost:4000/health
+
+# Test API endpoints
+node test-api.js
 ```
 
-### Xem logs của một service
+### Check Environment Variables
+
 ```bash
-docker-compose logs -f <service-name>
+# Check .env format
+node check-env.js
+
+# View .env (Windows)
+type services\core\.env
+
+# View .env (Mac/Linux)
+cat services/core/.env
 ```
 
-### Kiểm tra status
-```bash
-docker-compose ps
+### Check Database Schema
+
+Vào Neon Dashboard → SQL Editor và chạy:
+
+```sql
+-- List all tables
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public';
+
+-- Check User table
+SELECT * FROM "User" LIMIT 5;
+
+-- Check table structure
+SELECT column_name, data_type FROM information_schema.columns 
+WHERE table_name = 'User';
 ```
 
-### Vào container để debug
-```bash
-docker-compose exec <service-name> sh
-```
+### View Logs
 
-### Kiểm tra network
-```bash
-docker network inspect groupproject_usth-network
-```
-
-### Kiểm tra volumes
-```bash
-docker volume ls
-docker volume inspect groupproject_postgres_data
-```
-
-### Xem resource usage
-```bash
-docker stats
-```
+Logs hiển thị trực tiếp trong terminal khi chạy `npm run dev`. Xem terminal của từng service để debug.
 
 ## 🔄 Reset Hoàn Toàn
 
 Nếu mọi thứ không hoạt động, reset hoàn toàn:
 
-```bash
-# Dừng và xóa tất cả
-docker-compose down -v
+1. **Xóa database và tạo lại:**
+   - Vào Neon Dashboard
+   - Xóa project hoặc database
+   - Tạo lại project mới
+   - Chạy `create-tables.sql`
 
-# Xóa images (optional)
-docker-compose down --rmi all
+2. **Reset environment:**
+   ```bash
+   # Xóa .env và tạo lại
+   rm services/core/.env
+   # Tạo lại với connection string mới
+   ```
 
-# Xóa tất cả containers và volumes
-docker system prune -a --volumes
+3. **Reinstall dependencies:**
+   ```bash
+   cd services/core
+   rm -rf node_modules package-lock.json
+   npm install
+   
+   cd ../realtime
+   rm -rf node_modules package-lock.json
+   npm install
+   
+   cd ../../portal-ui-react
+   rm -rf node_modules package-lock.json
+   npm install
+   ```
 
-# Rebuild từ đầu
-docker-compose up -d --build
-```
+4. **Restart tất cả services:**
+   - Dừng tất cả terminals (Ctrl+C)
+   - Chạy lại từng service
 
 ## 📞 Cần Hỗ Trợ?
 
-1. Thu thập thông tin:
+1. **Thu thập thông tin:**
    ```bash
-   # Logs
-   docker-compose logs > logs.txt
+   # Health check
+   curl http://localhost:4000/health > health-check.txt
    
-   # Status
-   docker-compose ps > status.txt
+   # Test API
+   node test-api.js > api-test.txt
    
-   # Docker info
-   docker info > docker-info.txt
+   # Check env
+   node check-env.js > env-check.txt
    ```
 
-2. Gửi các file này cùng với mô tả vấn đề cho team
+2. **Kiểm tra trong Neon Dashboard:**
+   - Connection string
+   - Tables đã được tạo chưa
+   - Query logs
+
+3. **Xem tài liệu:**
+   - [NEON_DB_SETUP.md](./NEON_DB_SETUP.md)
+   - [NEON_ARCHITECTURE.md](./NEON_ARCHITECTURE.md)
+   - [SETUP_GUIDE.md](./SETUP_GUIDE.md)
+   - [RUN_SQL.md](./RUN_SQL.md)
 
 ---
 
 **Xem thêm: [SETUP_GUIDE.md](./SETUP_GUIDE.md)**
-

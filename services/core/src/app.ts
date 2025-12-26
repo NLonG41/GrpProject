@@ -9,11 +9,24 @@ import { subjectsRouter } from "./routes/subjects";
 import { roomsRouter } from "./routes/rooms";
 import { classesRouter } from "./routes/classes";
 import { requestsRouter } from "./routes/requests";
+import { enrollmentsRouter } from "./routes/enrollments";
+import { subjectPrerequisitesRouter } from "./routes/subjectPrerequisites";
+import { notificationsRouter } from "./routes/notifications";
+import { gradeItemsRouter } from "./routes/gradeItems";
+import { attendanceRouter } from "./routes/attendance";
+import { gradeRecordsRouter } from "./routes/gradeRecords";
+import { analyticsRouter } from "./routes/analytics";
 
 export const createApp = () => {
   const app = express();
 
-  app.use(cors());
+  // CORS configuration - allow all origins for development
+  app.use(cors({
+    origin: true, // Allow all origins in development
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
+  }));
   app.use(express.json());
 
   app.use("/health", healthRouter);
@@ -23,10 +36,17 @@ export const createApp = () => {
   // Note: In production, add JWT middleware to verify admin role
   // For now, we use x-user-id header (should be replaced with JWT token)
   app.use("/api/subjects", subjectsRouter);
+  app.use("/api/subject-prerequisites", subjectPrerequisitesRouter);
   app.use("/api/rooms", roomsRouter);
   app.use("/api/classes", classesRouter);
+  app.use("/api/enrollments", enrollmentsRouter);
   app.use("/api/requests", requestsRouter);
-  app.use("/schedules", scheduleRouter);
+  app.use("/api/schedules", scheduleRouter);
+  app.use("/api/notifications", notificationsRouter);
+  app.use("/api/grade-items", gradeItemsRouter);
+  app.use("/api/attendance", attendanceRouter);
+  app.use("/api/grade-records", gradeRecordsRouter);
+  app.use("/api/analytics", analyticsRouter);
 
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error(err);

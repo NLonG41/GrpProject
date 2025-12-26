@@ -1,88 +1,237 @@
-# USTH Portal – Microservice Architecture (Step 1)
+# USTH Portal – Current Architecture
 
-This document captures the target architecture before we refactor the existing mock setup. A PostgreSQL instance is being provisioned; once it is ready we will implement the services as outlined here.
+Document này mô tả kiến trúc hiện tại của hệ thống sau khi migrate sang Neon Database.
 
 ## 1. High–Level Topology
 
 ```
 ┌────────────┐      ┌──────────────┐      ┌──────────────┐
-│  Client    │ <--> │  Nginx GW    │ <--> │  Service A   │
-│ (Web/App)  │      │ (api.usth)   │      │ Core API     │
-└────────────┘      │  /core/*     │      │ Node + PG    │
-                    │  /rt/*       │      └──────────────┘
-                    │              │
-                    │              │      ┌──────────────┐
-                    │              └----> │  Service B   │
-                    │  (reverse proxy)    │ Realtime/Noti│
-                    └──────────────────── │ Node + Firestore
-                                          └──────────────┘
+│  Client    │ <--> │  Core API   │ <--> │  Neon DB     │
+│ (React)    │      │ (Express)   │      │ (PostgreSQL) │
+│ Port 5173  │      │ Port 4000   │      │ (Serverless) │
+└────────────┘      └──────────────┘      └──────────────┘
+                            │
+                            │
+                    ┌───────┴────────┐
+                    │               │
+            ┌───────▼──────┐ ┌──────▼──────────┐
+            │  Realtime    │ │  Firebase Auth   │
+            │  Service     │ │  (Verification)  │
+            │  Port 5002   │ │                  │
+            └──────────────┘ └──────────────────┘
+                    │
+                    │
+            ┌───────▼──────────┐
+            │  Firebase        │
+            │  Firestore       │
+            │  (Notifications) │
+            └──────────────────┘
 ```
 
-- **Gateway (Nginx)** – single entry point.  
-  - `/core/*` → Service A (business APIs).  
-  - `/rt/*` → Service B (Firestore sync, notifications).  
-  - Handles TLS, rate‑limit, auth headers forwarding.
+## 2. Components
 
-- **Service A – Core (Node.js + PostgreSQL)**  
-  - Owns master data: `users`, `subjects`, `classes`, `enrollments`, `grades`, `class_schedule`.  
-  - Exposes REST APIs: Auth, CRUD master data, schedule management, enrollment actions.  
-  - After a successful schedule insert it emits an event (`room-occupied`) with `{roomId, from, to}`.
-  - Event transport: RabbitMQ (preferred) or fallback HTTP/Redis pubsub until MQ cluster is ready.
+### Frontend Layer
 
-- **Service B – Realtime/Notifications (Node.js + Firebase Firestore)**  
-  - Subscribes to events from Service A.  
-  - Persists only **realtime** documents (e.g., `live_rooms/{roomId}` with `currentStatus`, `nextSlot`).  
-  - Manages user notifications collection `notifications/{userId}/items`.  
-  - Optionally exposes `/rt/notify` for manual pushes (assistant announcements).  
-  - Firestore → Client realtime subscription (student UI shows status instantly).
+- **portal-ui-react** (Vite + React + TypeScript)
+  - Port: `5173` (development)
+  - Chỉ còn 2 modules: `assistant` và `auth`
+  - UI tập trung vào Assistant Portal
+  - Kết nối tới Core Service (REST API) và Realtime Service (Firebase)
 
-## 2. Data Flow: POST `/schedule`
+### Backend Services
 
-1. **Client → Gateway → Service A**  
-   - Payload: `{roomId, classId, date, startTime, endTime}`.  
-   - Service A checks PostgreSQL for conflicts (`class_schedule` table).  
-   - If free: INSERT row (status `ACTIVE`) and publish event `room.occupied`.
+- **services/core** (Express + Prisma + Neon Database)
+  - Port: `4000`
+  - REST API chính: `/api/auth`, `/api/users`, `/api/subjects`, `/api/classes`, `/api/rooms`, `/api/schedule`, `/api/requests`
+  - Database: **Neon Database** (PostgreSQL serverless)
+  - Schema đầy đủ: User, Subject, Class, Room, Enrollment, Schedule, Request, Notification
+  - Script seed: `npm run seed:users` để tạo 50 tài khoản mẫu
 
-2. **Service A → Service B**  
-   - Transport: RabbitMQ exchange `room.status`.  
-   - Message body: `{roomId: "R101", from: "2025-11-28T08:00Z", to: "2025-11-28T10:00Z", status: "occupied", classId}`.
+- **services/realtime** (Express + Firebase Admin)
+  - Port: `5002`
+  - Quản lý thông báo realtime qua Firestore
+  - Endpoints: `/notifications`, `/rt/rooms/:id`
 
-3. **Service B**  
-   - Updates Firestore doc `live_rooms/R101` with `currentStatus = "occupied"` + metadata.  
-   - Optionally writes notification for impacted students.  
-   - Firestore change notifies subscribed clients instantly.
+### Database
 
-4. **Client**  
-   - Student UI listens to `live_rooms` collection; when `R101` doc changes, UI switches color/state with no refresh.
+- **Neon Database** (PostgreSQL serverless)
+  - Schema được quản lý bởi Prisma
+  - Migrations: Chạy SQL script trong `create-tables.sql` hoặc `npx prisma migrate deploy`
+  - Connection pooling tự động
+  - SSL required (`sslmode=require`)
+  - Region: ap-southeast-1 (Asia Pacific)
 
-## 3. Repository Layout (target)
+### Authentication
+
+- **Firebase Authentication**
+  - Frontend: Firebase Client SDK (`signInWithEmailAndPassword`)
+  - Backend: Firebase Admin SDK (verify ID tokens)
+  - Flow:
+    1. User đăng nhập qua Firebase Auth (frontend)
+    2. Frontend lấy ID token
+    3. Frontend gửi token tới `/api/auth/firebase-login`
+    4. Backend verify token và trả về user data từ Neon Database
+
+## 3. Data Flow: Authentication
+
+1. **Client → Firebase Auth**
+   - User nhập email/password
+   - Firebase Auth xác thực và trả về ID token
+
+2. **Client → Core Service**
+   - Frontend gửi ID token tới `/api/auth/firebase-login`
+   - Core Service verify token với Firebase Admin SDK
+   - Core Service query user từ Neon Database
+   - Core Service trả về user data (role, fullName, email, etc.)
+
+3. **Client → Realtime Service**
+   - Frontend subscribe Firestore notifications
+   - Realtime Service quản lý notifications collection
+
+## 4. Data Flow: Schedule Management
+
+1. **Client → Core Service**
+   - Assistant tạo schedule: `POST /api/schedule`
+   - Core Service kiểm tra conflicts trong Neon Database
+   - Core Service insert vào `ClassSchedule` table
+
+2. **Core Service → Realtime Service** (future)
+   - Emit event khi schedule được tạo
+   - Realtime Service update Firestore `live_rooms` collection
+
+3. **Client**
+   - Frontend subscribe Firestore để hiển thị realtime updates
+
+## 5. Repository Layout
 
 ```
-gateway/                 # Nginx conf, Dockerfile
-services/
-  core/                  # Service A (Node + PostgreSQL)
-    src/
-    prisma|knex/
-    package.json
-  realtime/              # Service B (Node + Firestore)
-    src/
-    package.json
-portal-ui/               # Web client (assistant & student UIs)
+GroupProject/
+├── portal-ui-react/          # Frontend (React + Vite)
+│   ├── src/
+│   │   ├── features/
+│   │   │   ├── assistant/    # Assistant Portal UI
+│   │   │   └── auth/         # Authentication UI
+│   │   └── shared/
+│   │       ├── api/          # API client
+│   │       └── config/       # Firebase config
+│   └── package.json
+│
+├── services/
+│   ├── core/                 # Core Service (Express + Prisma)
+│   │   ├── src/
+│   │   │   ├── routes/       # API routes
+│   │   │   ├── lib/          # Prisma client, Firebase Admin
+│   │   │   └── config/       # Environment config
+│   │   ├── prisma/
+│   │   │   └── schema.prisma # Database schema
+│   │   └── package.json
+│   │
+│   └── realtime/             # Realtime Service (Express + Firebase)
+│       ├── src/
+│       │   ├── routes/      # Notification routes
+│       │   └── lib/          # Firebase Admin
+│       └── package.json
+│
+├── create-tables.sql         # SQL script để tạo tables trong Neon
+├── README.md                 # Main documentation
+└── NEON_ARCHITECTURE.md     # Neon Database architecture details
 ```
 
-Legacy `portal-api/` (mock JSON) will be removed once Service A is functional.
+## 6. Technology Stack
 
-## 4. Immediate Next Steps
+### Frontend
+- React 18
+- TypeScript
+- Vite
+- TailwindCSS
+- Zustand (state management)
+- Firebase Auth SDK
 
-1. Scaffold `gateway`, `services/core`, `services/realtime` folders with basic `package.json`/Docker files.  
-2. Generate PostgreSQL schema (Prisma/Knex) and migration scripts.  
-3. Define event contract (JSON schema) + queue infrastructure (RabbitMQ docker).  
-4. Refactor portal-ui to:
-   - Authenticate against Service A (real login).  
-   - Route assistant vs student UI based on `role`.  
-   - Subscribe to Firestore via Service B config.
+### Backend
+- Node.js
+- Express
+- TypeScript
+- Prisma ORM
+- Firebase Admin SDK
 
-This document will evolve as the refactor proceeds.
+### Database
+- Neon Database (PostgreSQL serverless)
+- Firebase Firestore (notifications)
 
+### Authentication
+- Firebase Authentication (frontend)
+- Firebase Admin SDK (backend verification)
 
+## 7. Environment Variables
 
+### services/core/.env
+```env
+DATABASE_URL=postgresql://neondb_owner:password@ep-xxx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+PORT=4000
+FIREBASE_PROJECT_ID=web-portal-us
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@web-portal-us.iam.gserviceaccount.com
+```
+
+### services/realtime/.env
+```env
+FIREBASE_PROJECT_ID=web-portal-us
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@web-portal-us.iam.gserviceaccount.com
+PORT=5002
+```
+
+## 8. Key Features
+
+### Current Implementation
+- ✅ Neon Database integration
+- ✅ Firebase Authentication
+- ✅ Assistant Portal UI
+- ✅ User management (create, update role)
+- ✅ Subject/Class/Room management
+- ✅ Schedule management
+- ✅ Request management
+- ✅ Seed script (50 users)
+
+### Future Enhancements
+- 🔄 Event-driven architecture (RabbitMQ/Redis)
+- 🔄 Real-time room status updates
+- 🔄 Push notifications
+- 🔄 Student/Lecturer UI (if needed)
+
+## 9. Development Workflow
+
+1. **Setup**
+   - Clone project
+   - Install dependencies (`npm install` in each service)
+   - Configure Neon Database connection string
+   - Run `create-tables.sql` in Neon SQL Editor
+   - Configure Firebase credentials
+
+2. **Run Services**
+   - Terminal 1: `cd services/core && npm run dev`
+   - Terminal 2: `cd services/realtime && npm run dev`
+   - Terminal 3: `cd portal-ui-react && npm run dev`
+
+3. **Seed Data**
+   - `cd services/core && npm run seed:users`
+
+4. **Test**
+   - Health check: `curl http://localhost:4000/health`
+   - API tests: `node test-api.js`
+
+## 10. Advantages of Neon Database
+
+- ✅ **Serverless**: Không cần quản lý server
+- ✅ **Auto-scaling**: Tự động scale theo nhu cầu
+- ✅ **Connection pooling**: Tự động quản lý connections
+- ✅ **SSL required**: Bảo mật mặc định
+- ✅ **Free tier**: Có plan miễn phí
+- ✅ **Simple setup**: Connection string đơn giản
+
+---
+
+**Xem thêm:**
+- [NEON_ARCHITECTURE.md](../NEON_ARCHITECTURE.md) - Chi tiết về Neon Database
+- [README.md](../README.md) - Main documentation
+- [SETUP_GUIDE.md](../SETUP_GUIDE.md) - Setup instructions

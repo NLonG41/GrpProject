@@ -8,7 +8,8 @@
     "dev": "nodemon --watch src --exec ts-node src/index.ts",
     "start": "node dist/index.js",
     "test": "echo \"Test suite not added yet\" && exit 0",
-    "create-admin": "ts-node scripts/create-admin.ts"
+    "create-admin": "ts-node scripts/create-admin.ts",
+    "seed:users": "ts-node src/scripts/seed-users.ts"
   },
   "keywords": [],
   "author": "",
@@ -19,7 +20,9 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "firebase-admin": "^13.6.0",
     "pg": "^8.16.3",
+    "xlsx": "^0.18.5",
     "zod": "^4.1.13"
   },
   "devDependencies": {
@@ -27,6 +30,7 @@
     "@types/express": "^5.0.5",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
+    "@types/xlsx": "^0.0.35",
     "nodemon": "^3.1.11",
     "prisma": "^7.0.1",
     "ts-node": "^10.9.2",

@@ -12,6 +12,11 @@
   },
   "devDependencies": {
     "concurrently": "^9.0.1"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.86.2",
+    "dotenv": "^17.2.3",
+    "firebase": "^12.6.0",
+    "pg": "^8.16.3"
   }
 }
-

@@ -25,7 +25,7 @@ export function useUsers() {
   const createUser = async (data: {
     fullName: string
     email: string
-    role: 'ADMIN' | 'ASSISTANT' | 'LECTURER' | 'STUDENT'
+    role: 'ASSISTANT'
     studentCode?: string
     cohort?: string
     major?: string
@@ -48,10 +48,7 @@ export function useUsers() {
     }
   }
 
-  const updateRole = async (
-    userId: string,
-    role: 'ADMIN' | 'ASSISTANT' | 'LECTURER' | 'STUDENT'
-  ) => {
+  const updateRole = async (userId: string, role: 'ADMIN' | 'ASSISTANT' | 'LECTURER' | 'STUDENT') => {
     if (!user) throw new Error('Not authenticated')
     setLoading(true)
     setError(null)
@@ -68,9 +65,12 @@ export function useUsers() {
   }
 
   useEffect(() => {
-    if (user && (user.role === 'ADMIN' || user.role === 'ASSISTANT')) {
+    // Temporarily allow all roles to load users
+    if (user) {
+      console.log('[useUsers] Loading users for role:', user.role)
       loadUsers()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   return {

@@ -1,0 +1,178 @@
+### Test New API Endpoints
+### Notifications, GradeItems, Attendance, GradeRecords
+
+@baseUrl = http://localhost:4000
+@userId = YOUR_USER_ID_HERE
+@classId = YOUR_CLASS_ID_HERE
+@enrollmentId = YOUR_ENROLLMENT_ID_HERE
+@scheduleId = YOUR_SCHEDULE_ID_HERE
+
+### ============================================
+### NOTIFICATIONS
+### ============================================
+
+### GET /api/notifications - List all notifications
+GET {{baseUrl}}/api/notifications
+
+### GET /api/notifications - Filter by toUserId
+GET {{baseUrl}}/api/notifications?toUserId={{userId}}
+
+### GET /api/notifications - Filter by read status
+GET {{baseUrl}}/api/notifications?read=false
+
+### GET /api/notifications/:id - Get notification by ID
+GET {{baseUrl}}/api/notifications/NOTIFICATION_ID_HERE
+
+### POST /api/notifications - Create notification
+POST {{baseUrl}}/api/notifications
+Content-Type: application/json
+
+{
+  "toUserId": "{{userId}}",
+  "fromUserId": "{{userId}}",
+  "type": "INFO",
+  "title": "Test Notification",
+  "message": "This is a test notification"
+}
+
+### PUT /api/notifications/:id - Mark as read
+PUT {{baseUrl}}/api/notifications/NOTIFICATION_ID_HERE
+Content-Type: application/json
+
+{
+  "read": true
+}
+
+### DELETE /api/notifications/:id - Delete notification
+DELETE {{baseUrl}}/api/notifications/NOTIFICATION_ID_HERE
+
+### ============================================
+### GRADE ITEMS
+### ============================================
+
+### GET /api/grade-items - List all grade items
+GET {{baseUrl}}/api/grade-items
+
+### GET /api/grade-items - Filter by classId
+GET {{baseUrl}}/api/grade-items?classId={{classId}}
+
+### GET /api/grade-items - Filter by type
+GET {{baseUrl}}/api/grade-items?type=MIDTERM
+
+### GET /api/grade-items/:id - Get grade item by ID
+GET {{baseUrl}}/api/grade-items/GRADE_ITEM_ID_HERE
+
+### POST /api/grade-items - Create grade item
+POST {{baseUrl}}/api/grade-items
+Content-Type: application/json
+
+{
+  "classId": "{{classId}}",
+  "name": "Midterm Exam",
+  "maxScore": 100,
+  "weight": 0.3,
+  "type": "MIDTERM"
+}
+
+### PUT /api/grade-items/:id - Update grade item
+PUT {{baseUrl}}/api/grade-items/GRADE_ITEM_ID_HERE
+Content-Type: application/json
+
+{
+  "name": "Updated Midterm Exam",
+  "maxScore": 120,
+  "weight": 0.35
+}
+
+### DELETE /api/grade-items/:id - Delete grade item
+DELETE {{baseUrl}}/api/grade-items/GRADE_ITEM_ID_HERE
+
+### ============================================
+### ATTENDANCE
+### ============================================
+
+### GET /api/attendance - List all attendance records
+GET {{baseUrl}}/api/attendance
+
+### GET /api/attendance - Filter by enrollmentId
+GET {{baseUrl}}/api/attendance?enrollmentId={{enrollmentId}}
+
+### GET /api/attendance - Filter by scheduleId
+GET {{baseUrl}}/api/attendance?scheduleId={{scheduleId}}
+
+### GET /api/attendance - Filter by status
+GET {{baseUrl}}/api/attendance?status=PRESENT
+
+### GET /api/attendance/:id - Get attendance record by ID
+GET {{baseUrl}}/api/attendance/ATTENDANCE_ID_HERE
+
+### POST /api/attendance - Create attendance record
+POST {{baseUrl}}/api/attendance
+Content-Type: application/json
+
+{
+  "enrollmentId": "{{enrollmentId}}",
+  "scheduleId": "{{scheduleId}}",
+  "status": "PRESENT",
+  "verifiedBy": "{{userId}}"
+}
+
+### PUT /api/attendance/:id - Update attendance record
+PUT {{baseUrl}}/api/attendance/ATTENDANCE_ID_HERE
+Content-Type: application/json
+
+{
+  "status": "LATE",
+  "verifiedBy": "{{userId}}"
+}
+
+### DELETE /api/attendance/:id - Delete attendance record
+DELETE {{baseUrl}}/api/attendance/ATTENDANCE_ID_HERE
+
+### ============================================
+### GRADE RECORDS
+### ============================================
+
+### GET /api/grade-records - List all grade records
+GET {{baseUrl}}/api/grade-records
+
+### GET /api/grade-records - Filter by enrollmentId
+GET {{baseUrl}}/api/grade-records?enrollmentId={{enrollmentId}}
+
+### GET /api/grade-records - Filter by gradeItemId
+GET {{baseUrl}}/api/grade-records?gradeItemId=GRADE_ITEM_ID_HERE
+
+### GET /api/grade-records/:id - Get grade record by ID
+GET {{baseUrl}}/api/grade-records/GRADE_RECORD_ID_HERE
+
+### POST /api/grade-records - Create grade record
+POST {{baseUrl}}/api/grade-records
+Content-Type: application/json
+
+{
+  "enrollmentId": "{{enrollmentId}}",
+  "gradeItemId": "GRADE_ITEM_ID_HERE",
+  "score": 85.5,
+  "gradedBy": "{{userId}}"
+}
+
+### PUT /api/grade-records/:id - Update grade record
+PUT {{baseUrl}}/api/grade-records/GRADE_RECORD_ID_HERE
+Content-Type: application/json
+
+{
+  "score": 90.0,
+  "gradedBy": "{{userId}}"
+}
+
+### DELETE /api/grade-records/:id - Delete grade record
+DELETE {{baseUrl}}/api/grade-records/GRADE_RECORD_ID_HERE
+
+### ============================================
+### ANALYTICS DASHBOARD
+### ============================================
+
+### GET /api/analytics/dashboard - Get dashboard analytics (Assistant only)
+GET {{baseUrl}}/api/analytics/dashboard
+x-user-id: {{userId}}
+

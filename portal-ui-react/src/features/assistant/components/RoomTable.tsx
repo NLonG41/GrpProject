@@ -5,12 +5,9 @@ export function RoomTable() {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900">Quản lý phòng học</h3>
-          <p className="text-sm text-gray-500">Thông tin phòng & trạng thái bảo trì.</p>
-        </div>
-        <button className="px-3 py-2 bg-slate-100 rounded-lg text-sm">+ Thêm phòng</button>
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-slate-900">Quản lý phòng học</h3>
+        <p className="text-sm text-gray-500">Thông tin phòng & trạng thái bảo trì.</p>
       </div>
       {loading ? (
         <p className="text-center text-gray-500">Đang tải...</p>

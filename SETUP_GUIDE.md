@@ -6,17 +6,10 @@ Hướng dẫn chi tiết để setup và chạy dự án trên thiết bị m�
 
 ### Phần Mềm Cần Thiết
 
-1. **Docker Desktop** (hoặc Docker Engine + Docker Compose)
-   - Windows: [Download Docker Desktop](https://www.docker.com/products/docker-desktop/)
-   - Mac: [Download Docker Desktop](https://www.docker.com/products/docker-desktop/)
-   - Linux: 
-     ```bash
-     # Ubuntu/Debian
-     sudo apt-get update
-     sudo apt-get install docker.io docker-compose
-     sudo systemctl start docker
-     sudo systemctl enable docker
-     ```
+1. **Node.js** (khuyến nghị ≥ 18)
+   - Windows: [Download Node.js](https://nodejs.org/)
+   - Mac: `brew install node` hoặc [Download](https://nodejs.org/)
+   - Linux: `sudo apt-get install nodejs npm`
 
 2. **Git** (để clone project)
    - Windows: [Download Git](https://git-scm.com/download/win)
@@ -26,76 +19,28 @@ Hướng dẫn chi tiết để setup và chạy dự án trên thiết bị m�
 3. **Text Editor** (để chỉnh sửa file .env)
    - VS Code, Notepad++, hoặc bất kỳ editor nào
 
+4. **Neon Database Account** (miễn phí)
+   - Đăng ký tại: https://console.neon.tech/
+   - Tạo project mới và copy connection string
+
+5. **Firebase Project**
+   - Đăng ký tại: https://console.firebase.google.com/
+   - Tạo project và lấy Service Account credentials
+
 ### Yêu Cầu Phần Cứng
 
 - **RAM**: Tối thiểu 4GB (khuyến nghị 8GB)
-- **Disk Space**: Tối thiểu 5GB trống
+- **Disk Space**: Tối thiểu 2GB trống
 - **CPU**: Bất kỳ CPU hiện đại nào
+- **Internet**: Cần kết nối internet để truy cập Neon Database và Firebase
 
-## 📦 Bước 1: Cài Đặt Docker
-
-### Windows
-
-1. Tải Docker Desktop từ [docker.com](https://www.docker.com/products/docker-desktop/)
-2. Chạy file installer và làm theo hướng dẫn
-3. Khởi động lại máy nếu được yêu cầu
-4. Mở Docker Desktop và đợi nó khởi động hoàn toàn
-5. Kiểm tra cài đặt:
-   ```powershell
-   docker --version
-   docker-compose --version
-   ```
-
-### Mac
-
-1. Tải Docker Desktop từ [docker.com](https://www.docker.com/products/docker-desktop/)
-2. Kéo Docker vào Applications folder
-3. Mở Docker Desktop từ Applications
-4. Kiểm tra cài đặt:
-   ```bash
-   docker --version
-   docker-compose --version
-   ```
-
-### Linux (Ubuntu/Debian)
-
-```bash
-# Cập nhật package list
-sudo apt-get update
-
-# Cài đặt dependencies
-sudo apt-get install \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release
-
-# Thêm Docker's official GPG key
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
-# Setup repository
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Cài đặt Docker Engine và Docker Compose
-sudo apt-get update
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-# Thêm user vào docker group (để chạy docker không cần sudo)
-sudo usermod -aG docker $USER
-
-# Khởi động lại hoặc đăng xuất/đăng nhập lại
-```
-
-## 📥 Bước 2: Clone Project
+## 📥 Bước 1: Clone Project
 
 ### Từ Git Repository
 
 ```bash
 # Clone project
-git clone <repository-url>
+git clone https://github.com/NLonG41/GrpProject.git
 cd GroupProject
 
 # Hoặc nếu đã có project, pull latest changes
@@ -107,39 +52,61 @@ git pull origin master
 1. Giải nén file ZIP vào thư mục bạn muốn
 2. Mở terminal/command prompt trong thư mục đó
 
-## ⚙️ Bước 3: Cấu Hình Environment Variables
+## ⚙️ Bước 2: Cài Đặt Dependencies
 
-### 3.1. Tạo file .env
+### Frontend
 
-Trong thư mục gốc của project, tạo file `.env`:
-
-**Windows (PowerShell):**
-```powershell
-Copy-Item .env.example .env
-# Hoặc tạo file mới
-New-Item -Path .env -ItemType File
-```
-
-**Mac/Linux:**
 ```bash
-cp .env.example .env
-# Hoặc nếu không có .env.example
-touch .env
+cd portal-ui-react
+npm install
 ```
 
-### 3.2. Cấu hình Firebase
+### Core Service
 
-Mở file `.env` và điền thông tin Firebase của bạn:
+```bash
+cd services/core
+npm install
+```
+
+### Realtime Service
+
+```bash
+cd services/realtime
+npm install
+```
+
+## 🔐 Bước 3: Cấu Hình Environment Variables
+
+### 3.1. Neon Database Setup
+
+1. Vào https://console.neon.tech/
+2. Tạo project mới (hoặc dùng project có sẵn)
+3. Copy connection string từ Neon Dashboard
+4. Tạo file `.env` trong `services/core/`:
 
 ```env
-# Firebase Configuration for Realtime Service
-FIREBASE_PROJECT_ID=web-portal-us
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----\n"
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@web-portal-us.iam.gserviceaccount.com
+# Neon Database Connection String
+DATABASE_URL=postgresql://neondb_owner:password@ep-xxx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 
-# Event Broker URL (optional, để trống nếu không dùng)
-EVENT_BROKER_URL=
+# Service Port
+PORT=4000
+
+# Firebase Admin (for Auth verification)
+FIREBASE_PROJECT_ID=web-portal-us
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@web-portal-us.iam.gserviceaccount.com
 ```
+
+### 3.2. Tạo Database Schema
+
+1. Vào Neon Dashboard → SQL Editor
+2. Mở file `create-tables.sql` trong project root
+3. Copy toàn bộ nội dung và paste vào SQL Editor
+4. Click **Run** để tạo tables
+
+Xem chi tiết trong `RUN_SQL.md`
+
+### 3.3. Cấu hình Firebase
 
 **Lấy thông tin Firebase:**
 
@@ -163,253 +130,225 @@ EVENT_BROKER_URL=
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...\n-----END PRIVATE KEY-----\n"
 ```
 
+### 3.4. Cấu hình Frontend Firebase
+
+Tạo file `.env` trong `portal-ui-react/` (nếu cần):
+
+```env
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=web-portal-us
+```
+
+Frontend đã có cấu hình Firebase sẵn trong `src/shared/config/firebase.ts`.
+
 ## 🚀 Bước 4: Chạy Dự Án
 
-### 4.1. Kiểm tra Docker đang chạy
+Mỗi service chạy ở một terminal riêng:
 
-**Windows/Mac:**
-- Mở Docker Desktop và đảm bảo nó đang chạy (icon Docker ở system tray)
-
-**Linux:**
-```bash
-sudo systemctl status docker
-```
-
-### 4.2. Build và khởi động containers
-
-Trong thư mục gốc của project:
-
-**Windows (PowerShell):**
-```powershell
-docker-compose up -d --build
-```
-
-**Mac/Linux:**
-```bash
-docker-compose up -d --build
-```
-
-Lần đầu chạy sẽ mất vài phút để:
-- Tải các Docker images
-- Build các services
-- Tạo PostgreSQL database
-- Chạy migrations
-
-### 4.3. Kiểm tra logs
+### Terminal 1: Core Service
 
 ```bash
-# Xem logs của tất cả services
-docker-compose logs -f
-
-# Xem logs của một service cụ thể
-docker-compose logs -f core-service
-docker-compose logs -f postgres
+cd services/core
+npm run dev
 ```
 
-**Đợi đến khi thấy:**
-- `PostgreSQL is ready!`
-- `Migrations completed!`
-- `Core service running on http://localhost:5001`
+Đợi đến khi thấy:
+- `Core service running on http://localhost:4000`
+- `"db": "reachable"` trong health check
+
+### Terminal 2: Realtime Service
+
+```bash
+cd services/realtime
+npm run dev
+```
+
+Đợi đến khi thấy:
 - `Realtime service running on http://localhost:5002`
-- `Portal API running on http://localhost:4000`
+
+### Terminal 3: Frontend
+
+```bash
+cd portal-ui-react
+npm run dev
+```
+
+Đợi đến khi thấy:
+- `Local: http://localhost:5173`
 
 ## ✅ Bước 5: Kiểm Tra Dự Án Đã Chạy
 
-### 5.1. Kiểm tra containers đang chạy
+### 5.1. Kiểm tra Core Service
 
 ```bash
-docker-compose ps
+# Test health endpoint
+curl http://localhost:4000/health
+
+# Hoặc mở trình duyệt
+# http://localhost:4000/health
 ```
 
-Bạn sẽ thấy 5 containers:
-- `usth-postgres` - PostgreSQL database
-- `usth-core-service` - Core service
-- `usth-realtime-service` - Realtime service
-- `usth-portal-api` - Portal API
-- `usth-portal-ui` - Frontend
+Kết quả mong đợi:
+```json
+{
+  "status": "ok",
+  "db": "reachable"
+}
+```
 
-Tất cả phải có status `Up` (healthy).
+### 5.2. Kiểm tra Database
 
-### 5.2. Truy cập ứng dụng
+Vào Neon Dashboard → SQL Editor và chạy:
+
+```sql
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public';
+```
+
+Bạn sẽ thấy các tables:
+- `User`
+- `Subject`
+- `Class`
+- `Room`
+- `Enrollment`
+- `ClassSchedule`
+- `Notification`
+- `Request`
+
+### 5.3. Tạo tài khoản mẫu (50 users)
+
+```bash
+cd services/core
+npm run seed:users
+```
+
+Script sẽ tạo:
+- 30 sinh viên (CS/ICT/DS majors)
+- 20 giảng viên (ICT Department)
+- Tự động tạo trong Firebase Auth
+
+### 5.4. Truy cập ứng dụng
 
 Mở trình duyệt và truy cập:
-
-- **Frontend**: http://localhost
-- **Portal API**: http://localhost:4000/api/portal-data
-- **Core Service Health**: http://localhost:5001/health
+- **Frontend**: http://localhost:5173
+- **Core Service Health**: http://localhost:4000/health
 - **Realtime Service**: http://localhost:5002
-
-### 5.3. Kiểm tra database
-
-```bash
-# Vào PostgreSQL container
-docker-compose exec postgres psql -U usth_user -d usth_academic
-
-# Kiểm tra tables
-\dt
-
-# Xem danh sách users
-SELECT id, email, role, "fullName" FROM "User";
-
-# Thoát
-\q
-```
 
 ## 🛠️ Bước 6: Troubleshooting
 
-### Vấn đề: Docker không chạy
+### Vấn đề: Core service không kết nối được database
+
+**Lỗi:** `"db": "unreachable"` trong health check
 
 **Giải pháp:**
-- Windows/Mac: Mở Docker Desktop và đợi nó khởi động hoàn toàn
-- Linux: `sudo systemctl start docker`
+1. Kiểm tra `DATABASE_URL` trong `.env` có đúng không
+2. Kiểm tra connection string có đầy đủ `sslmode=require` không
+3. Kiểm tra password có đúng không
+4. Thử test connection bằng script:
+   ```bash
+   node test-supabase-connection.js
+   ```
 
 ### Vấn đề: Port đã được sử dụng
 
-**Lỗi:** `port is already allocated`
+**Lỗi:** `EADDRINUSE: address already in use`
 
 **Giải pháp:**
 1. Kiểm tra port nào đang được dùng:
    ```bash
    # Windows
-   netstat -ano | findstr :80
    netstat -ano | findstr :4000
    
    # Mac/Linux
-   lsof -i :80
    lsof -i :4000
    ```
 
-2. Dừng service đang dùng port đó, hoặc
-3. Thay đổi port trong `docker-compose.yml`:
-   ```yaml
-   ports:
-     - "8080:80"  # Thay vì 80:80
+2. Dừng process đang dùng port đó, hoặc
+3. Thay đổi port trong `.env`:
+   ```env
+   PORT=4001
    ```
 
 ### Vấn đề: Firebase authentication failed
 
-**Lỗi:** `Firebase authentication error` trong logs của realtime-service
+**Lỗi:** `Firebase authentication error` trong logs
 
 **Giải pháp:**
 1. Kiểm tra file `.env` có đúng format không
 2. Đảm bảo `FIREBASE_PRIVATE_KEY` có dấu ngoặc kép và `\n`
 3. Kiểm tra `FIREBASE_PROJECT_ID` và `FIREBASE_CLIENT_EMAIL` đúng chưa
-4. Xem logs chi tiết:
-   ```bash
-   docker-compose logs realtime-service
-   ```
+4. Xem logs chi tiết trong terminal
 
-### Vấn đề: Database migrations failed
+### Vấn đề: Database schema không tồn tại
 
-**Lỗi:** `Migration failed` trong logs của core-service
+**Lỗi:** `relation "User" does not exist`
 
 **Giải pháp:**
-```bash
-# Xóa database và tạo lại
-docker-compose down -v
-docker-compose up -d --build
+1. Vào Neon Dashboard → SQL Editor
+2. Chạy file `create-tables.sql`
+3. Hoặc chạy Prisma migrations:
+   ```bash
+   cd services/core
+   npx prisma migrate deploy
+   ```
 
-# Hoặc chạy migrations thủ công
-docker-compose exec core-service npx prisma migrate deploy
-```
-
-### Vấn đề: Container không start
+### Vấn đề: Frontend không kết nối được backend
 
 **Giải pháp:**
-```bash
-# Xem logs chi tiết
-docker-compose logs <service-name>
-
-# Rebuild container
-docker-compose build --no-cache <service-name>
-docker-compose up -d <service-name>
-
-# Hoặc rebuild tất cả
-docker-compose down
-docker-compose build --no-cache
-docker-compose up -d
-```
-
-### Vấn đề: Không truy cập được frontend
-
-**Kiểm tra:**
-1. Container `usth-portal-ui` đang chạy:
-   ```bash
-   docker-compose ps portal-ui
-   ```
-
-2. Xem logs:
-   ```bash
-   docker-compose logs portal-ui
-   ```
-
-3. Kiểm tra port 80:
-   ```bash
-   # Windows
-   netstat -ano | findstr :80
-   
-   # Mac/Linux
-   lsof -i :80
-   ```
+1. Kiểm tra backend đang chạy: `curl http://localhost:4000/health`
+2. Kiểm tra CORS settings trong `services/core/src/app.ts`
+3. Kiểm tra API URL trong frontend: `portal-ui-react/src/shared/api/client.ts`
 
 ## 📝 Các Lệnh Thường Dùng
 
 ### Dừng services
-```bash
-docker-compose down
-```
 
-### Dừng và xóa tất cả data (reset hoàn toàn)
-```bash
-docker-compose down -v
-```
+Nhấn `Ctrl+C` trong terminal của từng service.
 
 ### Xem logs
+
+Logs hiển thị trực tiếp trong terminal khi chạy `npm run dev`.
+
+### Restart service
+
+1. Dừng service (`Ctrl+C`)
+2. Chạy lại: `npm run dev`
+
+### Test API
+
 ```bash
-# Tất cả services
-docker-compose logs -f
+# Test health endpoint
+curl http://localhost:4000/health
 
-# Một service
-docker-compose logs -f core-service
-```
-
-### Restart một service
-```bash
-docker-compose restart core-service
-```
-
-### Rebuild một service
-```bash
-docker-compose build core-service
-docker-compose up -d core-service
-```
-
-### Vào container để debug
-```bash
-# Vào core-service
-docker-compose exec core-service sh
-
-# Vào postgres
-docker-compose exec postgres psql -U usth_user -d usth_academic
+# Test API với script
+node test-api.js
 ```
 
 ## 🎯 Checklist Setup
 
-- [ ] Docker đã được cài đặt và đang chạy
+- [ ] Node.js đã được cài đặt (≥ 18)
 - [ ] Project đã được clone/download
-- [ ] File `.env` đã được tạo và cấu hình Firebase
-- [ ] Đã chạy `docker-compose up -d --build`
-- [ ] Tất cả containers đang chạy (kiểm tra bằng `docker-compose ps`)
-- [ ] Có thể truy cập http://localhost
-- [ ] Database đã được tạo và migrations đã chạy
+- [ ] Đã cài đặt dependencies cho tất cả services
+- [ ] Đã tạo Neon Database và copy connection string
+- [ ] Đã tạo file `.env` trong `services/core/` với Neon connection string
+- [ ] Đã chạy `create-tables.sql` trong Neon SQL Editor
+- [ ] Đã cấu hình Firebase credentials trong `.env`
+- [ ] Đã chạy `npm run dev` cho core service
+- [ ] Health check trả về `"db": "reachable"`
+- [ ] Đã chạy `npm run dev` cho realtime service
+- [ ] Đã chạy `npm run dev` cho frontend
+- [ ] Có thể truy cập http://localhost:5173
+- [ ] Đã chạy `npm run seed:users` để tạo tài khoản mẫu
 
 ## 📞 Hỗ Trợ
 
 Nếu gặp vấn đề, hãy:
-1. Xem logs: `docker-compose logs -f`
-2. Kiểm tra status: `docker-compose ps`
-3. Thử rebuild: `docker-compose down && docker-compose up -d --build`
-4. Liên hệ team để được hỗ trợ
+1. Xem logs trong terminal
+2. Kiểm tra health endpoint: `curl http://localhost:4000/health`
+3. Xem [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+4. Xem [NEON_DB_SETUP.md](./NEON_DB_SETUP.md)
+5. Xem [NEON_ARCHITECTURE.md](./NEON_ARCHITECTURE.md)
 
 ## 🔄 Cập Nhật Project
 
@@ -419,12 +358,14 @@ Khi có code mới:
 # Pull latest code
 git pull origin master
 
-# Rebuild và restart
-docker-compose down
-docker-compose up -d --build
+# Cài đặt dependencies mới (nếu có)
+cd services/core && npm install
+cd ../realtime && npm install
+cd ../../portal-ui-react && npm install
+
+# Restart services
 ```
 
 ---
 
 **Chúc bạn setup thành công! 🎉**
-

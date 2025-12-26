@@ -11,8 +11,13 @@ required.forEach((key) => {
 });
 
 export const env = {
-  port: Number(process.env.PORT) || 5001,
+  port: Number(process.env.PORT) || 4000,
   databaseUrl: process.env.DATABASE_URL as string,
   eventBrokerUrl: process.env.EVENT_BROKER_URL || "",
+  firebase: {
+    projectId: process.env.FIREBASE_PROJECT_ID || "",
+    privateKey: (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL || "",
+  },
 };
 
