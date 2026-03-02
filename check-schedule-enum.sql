@@ -39,3 +39,4 @@ SELECT DISTINCT type FROM class_schedule;
 
 
 
+

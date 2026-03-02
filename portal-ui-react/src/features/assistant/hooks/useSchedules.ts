@@ -43,6 +43,8 @@ export function useSchedules(params?: UseSchedulesParams) {
     repeatEndDate?: string
     numberOfSessions?: number
     repeatDaysOfWeek?: number[]
+    startTimeOfDay?: string
+    endTimeOfDay?: string
   }) => {
     try {
       if (!user?.id) throw new Error('Missing user ID')

@@ -1,9 +1,13 @@
 import { useState } from 'react'
 import { useSubjects } from '../hooks/useSubjects'
+import { useClasses } from '../hooks/useClasses'
+import { useUsers } from '../hooks/useUsers'
 import { CreateSubjectPayload } from '@/shared/api/client'
 
 export function SubjectManager() {
   const { subjects, loading: subjectsLoading, bulkCreateSubjects, loadSubjects } = useSubjects()
+  const { createClass, classes } = useClasses()
+  const { users } = useUsers()
   const [showBulkModal, setShowBulkModal] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -23,6 +27,44 @@ export function SubjectManager() {
   }>>([
     { id: '', name: '', credits: '3', faculty: '', description: '' },
   ])
+
+  const handleCreateClassFromSubject = async (subject: { id: string; name: string }) => {
+    // Chỉ dùng lecturer chắc chắn tồn tại và đang được tham chiếu bởi class hiện có
+    const validLecturerIds = new Set(classes.map((c) => c.lecturerId))
+    const lecturer = users.find((u) => u.role === 'LECTURER' && validLecturerIds.has(u.id))
+
+    if (!lecturer) {
+      alert('Không tìm thấy giảng viên hợp lệ trong dữ liệu hiện tại. Vui lòng tạo/seed lại lớp có lecturer hợp lệ hoặc chọn giảng viên tồn tại trong DB.')
+      return
+    }
+
+    const now = Date.now()
+    const classId = `class-${subject.id}-${now}`
+
+    try {
+      setIsProcessing(true)
+      await createClass({
+        id: classId,
+        subjectId: subject.id,
+        lecturerId: lecturer.id,
+        name: `${subject.name} Class`,
+        maxCapacity: 40,
+        startDate: new Date(new Date().getFullYear(), 1, 1).toISOString(),
+        endDate: new Date(new Date().getFullYear(), 11, 31, 23, 59, 59).toISOString(),
+        isActive: true,
+      })
+      alert(`Đã tạo lớp ${classId} cho môn ${subject.name}`)
+    } catch (error: any) {
+      const msg = String(error?.message || '')
+      if (msg.includes('P2003') || msg.includes('Foreign key constraint')) {
+        alert('Không thể tạo lớp: lecturerId không tồn tại trong DB. Hãy đồng bộ user/DB hoặc đăng nhập lại rồi thử lại.')
+      } else {
+        alert(error?.message || 'Không thể tạo lớp từ môn học')
+      }
+    } finally {
+      setIsProcessing(false)
+    }
+  }
 
   const handleBulkCreate = async () => {
     const subjectsToCreate: CreateSubjectPayload[] = rows
@@ -55,9 +97,11 @@ export function SubjectManager() {
       let message = `Đã tạo thành công ${created.length} môn học.\n`
       if (skipped.length > 0) {
         message += `Bỏ qua ${skipped.length} môn (đã tồn tại).\n`
+        message += `- ${skipped.map((s) => `${s.id}: ${s.reason}`).join('\n- ')}\n`
       }
       if (errors.length > 0) {
         message += `Lỗi ${errors.length} môn.\n`
+        message += `- ${errors.map((e) => `${e.id}: ${e.error}`).join('\n- ')}\n`
       }
 
       alert(message)
@@ -108,20 +152,14 @@ export function SubjectManager() {
         <div className="flex items-center justify-between mb-4 gap-2">
           <div>
             <h3 className="font-semibold text-lg text-slate-900">Danh sách môn</h3>
-            <p className="text-sm text-gray-500">CRUD đầy đủ + cấu hình tiên quyết.</p>
+
           </div>
           <div className="flex gap-2">
-          <button 
-              onClick={() => setShowAddModal(true)}
-            className="px-3 py-2 bg-usth-navy text-white rounded-lg text-sm hover:bg-usth-sky transition"
-          >
-            + Thêm môn
-          </button>
             <button
               onClick={() => setShowBulkModal(true)}
-              className="px-3 py-2 bg-gray-100 text-gray-800 rounded-lg text-sm hover:bg-gray-200 transition"
+              className="px-3 py-2 bg-usth-navy text-white rounded-lg text-sm hover:bg-usth-sky transition"
             >
-              + Thêm danh sách môn
+              + Thêm môn
             </button>
           </div>
         </div>
@@ -136,14 +174,24 @@ export function SubjectManager() {
           ) : (
             subjects.map((subject) => (
               <div key={subject.id} className="border border-gray-100 rounded-lg p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm text-gray-500">{subject.id}</p>
                     <p className="text-base font-semibold text-slate-900">{subject.name}</p>
                   </div>
-                  <span className="px-3 py-1 text-xs font-medium bg-gray-100 rounded-full">
-                    {subject.credits} tín chỉ
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 text-xs font-medium bg-gray-100 rounded-full">
+                      {subject.credits} tín chỉ
+                    </span>
+                    <button
+                      type="button"
+                      disabled={isProcessing}
+                      onClick={() => handleCreateClassFromSubject(subject)}
+                      className="px-3 py-1 text-xs rounded-lg bg-usth-navy text-white hover:bg-usth-sky disabled:opacity-50"
+                    >
+                      Tạo lớp từ môn này
+                    </button>
+                  </div>
                 </div>
                 <p className="text-sm text-gray-500">Khoa: {subject.faculty}</p>
               </div>

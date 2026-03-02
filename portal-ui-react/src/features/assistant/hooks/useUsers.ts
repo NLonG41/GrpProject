@@ -14,6 +14,13 @@ export function useUsers() {
     setError(null)
     try {
       const data = await usersRepository.getAll()
+      // Debug: Log users data to check major field
+      console.log('[useUsers] Loaded users:', data.length)
+      const students = data.filter(u => u.role === 'STUDENT')
+      console.log('[useUsers] Students found:', students.length)
+      students.forEach(s => {
+        console.log(`[useUsers] Student ${s.email}: major="${s.major}", role="${s.role}"`)
+      })
       setUsers(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load users')
@@ -25,7 +32,7 @@ export function useUsers() {
   const createUser = async (data: {
     fullName: string
     email: string
-    role: 'ASSISTANT'
+    role: 'ADMIN' | 'ASSISTANT' | 'LECTURER' | 'STUDENT'
     studentCode?: string
     cohort?: string
     major?: string
@@ -64,6 +71,21 @@ export function useUsers() {
     }
   }
 
+  const resetPassword = async (userId: string) => {
+    if (!user) throw new Error('Not authenticated')
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await usersRepository.resetPassword(userId, user.id)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset password')
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     // Temporarily allow all roles to load users
     if (user) {
@@ -80,6 +102,7 @@ export function useUsers() {
     loadUsers,
     createUser,
     updateRole,
+    resetPassword,
   }
 }
 

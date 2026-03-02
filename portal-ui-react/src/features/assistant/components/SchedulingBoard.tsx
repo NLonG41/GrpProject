@@ -14,7 +14,6 @@ export function SchedulingBoard() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingSchedule, setEditingSchedule] = useState<ClassSchedule | null>(null)
-  const [showImportModal, setShowImportModal] = useState(false)
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set())
   const [formData, setFormData] = useState({
     classId: '',
@@ -291,48 +290,6 @@ export function SchedulingBoard() {
     })
   }
 
-  const handleExportCalendar = async () => {
-    if (!user?.id) {
-      alert('Vui lòng đăng nhập để export calendar')
-      return
-    }
-
-    try {
-      const CORE_API = import.meta.env.VITE_CORE_API || 'http://localhost:4000'
-      const response = await fetch(`${CORE_API}/api/schedules/export-calendar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user.id,
-        },
-        body: JSON.stringify({ scheduleIds: schedules.map(s => s.id) }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Không thể export calendar')
-      }
-
-      const text = await response.text()
-      const blob = new Blob([text], { type: 'text/calendar;charset=utf-8' })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `lich-hoc-${new Date().toISOString().split('T')[0]}.ics`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-    } catch (err: any) {
-      alert(err.message || 'Không thể export calendar')
-    }
-  }
-
-
-  const handleImportExcel = async (_file: File) => {
-    // This will be implemented with Excel parsing
-    alert('Tính năng import Excel đang được phát triển')
-  }
 
   return (
     <div className="space-y-6">
@@ -344,24 +301,6 @@ export function SchedulingBoard() {
             <p className="text-gray-500">Quản lý và xếp lịch học cho các lớp</p>
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              Import Excel
-            </button>
-            <button
-              onClick={handleExportCalendar}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Export Calendar
-            </button>
             <button
               onClick={() => setShowCreateModal(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -1019,39 +958,6 @@ export function SchedulingBoard() {
         </div>
       )}
 
-      {/* Import Excel Modal */}
-      {showImportModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-900">Import từ Excel</h3>
-            </div>
-            <div className="p-6">
-              <p className="text-sm text-gray-600 mb-4">
-                Vui lòng chọn file Excel (.xlsx) để import lịch học.
-                File phải có các cột: Lớp học, Phòng, Thời gian bắt đầu, Thời gian kết thúc, Loại.
-              </p>
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) handleImportExcel(file)
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  onClick={() => setShowImportModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Đóng
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

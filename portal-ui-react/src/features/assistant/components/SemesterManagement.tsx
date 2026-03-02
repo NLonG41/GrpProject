@@ -134,22 +134,6 @@ export function SemesterManagement() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => setShowSubjectModal(true)}
-            className="px-4 py-2 rounded-lg bg-usth-navy text-white text-sm hover:bg-usth-navy/90 transition-colors"
-          >
-            + Thêm môn
-          </button>
-          <button
-            onClick={() => {
-              console.log('[SemesterManagement] Manual refresh triggered')
-              loadClasses()
-            }}
-            className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm hover:bg-gray-200 transition-colors"
-            title="Làm mới danh sách lớp học"
-          >
-            🔄 Làm mới
-          </button>
         </div>
       </div>
 

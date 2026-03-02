@@ -62,6 +62,7 @@ router.post("/", requireAssistant, async (req, res) => {
     // Check if subject with same ID already exists
     const existing = await prisma.subject.findUnique({
       where: { id: data.id },
+      select: { id: true },
     });
 
     if (existing) {
@@ -128,6 +129,7 @@ router.post("/bulk", requireAssistant, async (req, res) => {
         // Check if subject already exists
         const existing = await prisma.subject.findUnique({
           where: { id: subjectData.id },
+          select: { id: true },
         });
 
         if (existing) {

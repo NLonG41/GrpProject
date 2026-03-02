@@ -45,6 +45,11 @@ enum ScheduleStatus {
   CANCELLED
 }
 
+enum ScheduleCategory {
+  STUDY
+  EXAM
+}
+
 enum AttendanceStatus {
   PRESENT
   ABSENT
@@ -167,14 +172,15 @@ model Enrollment {
 }
 
 model ClassSchedule {
-  id        String         @id @default(uuid())
+  id        String           @id @default(uuid())
   classId   String
   roomId    String
   startTime DateTime
   endTime   DateTime
-  type      ScheduleType   @default(MAIN)
-  status    ScheduleStatus @default(ACTIVE)
-  createdAt DateTime       @default(now())
+  type      ScheduleType     @default(MAIN)
+  category  ScheduleCategory @default(STUDY)
+  status    ScheduleStatus   @default(ACTIVE)
+  createdAt DateTime         @default(now())
 
   class Class @relation(fields: [classId], references: [id])
   room  Room  @relation(fields: [roomId], references: [id])

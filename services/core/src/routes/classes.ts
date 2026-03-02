@@ -74,7 +74,17 @@ router.get("/:id", async (req, res) => {
     const classItem = await prisma.class.findUnique({
       where: { id },
       include: {
-        subject: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            credits: true,
+            faculty: true,
+            description: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         lecturer: {
           select: {
             id: true,
@@ -117,6 +127,7 @@ router.post("/", requireAssistant, async (req, res) => {
     // Verify subject exists
     const subject = await prisma.subject.findUnique({
       where: { id: data.subjectId },
+      select: { id: true },
     });
     if (!subject) {
       return res.status(404).json({ error: "Subject not found" });
@@ -158,7 +169,17 @@ router.post("/", requireAssistant, async (req, res) => {
         isActive: data.isActive ?? true,
       },
       include: {
-        subject: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            credits: true,
+            faculty: true,
+            description: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         lecturer: {
           select: {
             id: true,
@@ -234,7 +255,17 @@ router.put("/:id", requireAssistant, async (req, res) => {
       where: { id: id as string },
       data: prismaUpdateData,
       include: {
-        subject: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            credits: true,
+            faculty: true,
+            description: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         lecturer: {
           select: {
             id: true,

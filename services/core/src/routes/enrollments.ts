@@ -27,7 +27,11 @@ router.get("/", async (req, res) => {
         ...(studentId && { studentId: studentId as string }),
         ...(classId && { classId: classId as string }),
       },
-      include: {
+      select: {
+        id: true,
+        studentId: true,
+        classId: true,
+        registeredAt: true,
         student: {
           select: {
             id: true,
@@ -81,7 +85,11 @@ router.get("/:id", async (req, res) => {
   try {
     const enrollment = await prisma.enrollment.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        studentId: true,
+        classId: true,
+        registeredAt: true,
         student: {
           select: {
             id: true,
@@ -93,7 +101,13 @@ router.get("/:id", async (req, res) => {
         },
         class: {
           include: {
-            subject: true,
+            subject: {
+              select: {
+                id: true,
+                name: true,
+                credits: true,
+              },
+            },
             lecturer: {
               select: {
                 id: true,
@@ -170,6 +184,9 @@ router.post("/", async (req, res) => {
         studentId,
         classId,
       },
+      select: {
+        id: true,
+      },
     });
     if (existing) {
       return res.status(409).json({ error: "Student is already enrolled in this class" });
@@ -183,7 +200,11 @@ router.post("/", async (req, res) => {
           studentId,
           classId,
         },
-        include: {
+        select: {
+          id: true,
+          studentId: true,
+          classId: true,
+          registeredAt: true,
           student: {
             select: {
               id: true,
@@ -194,7 +215,13 @@ router.post("/", async (req, res) => {
           },
           class: {
             include: {
-              subject: true,
+              subject: {
+                select: {
+                  id: true,
+                  name: true,
+                  credits: true,
+                },
+              },
               lecturer: {
                 select: {
                   id: true,
@@ -293,7 +320,11 @@ router.put("/:id", async (req, res) => {
     const enrollment = await prisma.enrollment.update({
       where: { id },
       data: prismaUpdateData,
-      include: {
+      select: {
+        id: true,
+        studentId: true,
+        classId: true,
+        registeredAt: true,
         student: {
           select: {
             id: true,
@@ -304,7 +335,13 @@ router.put("/:id", async (req, res) => {
         },
         class: {
           include: {
-            subject: true,
+            subject: {
+              select: {
+                id: true,
+                name: true,
+                credits: true,
+              },
+            },
             lecturer: {
               select: {
                 id: true,
@@ -341,6 +378,10 @@ router.delete("/:id", async (req, res) => {
     // Get enrollment to get classId
     const enrollment = await prisma.enrollment.findUnique({
       where: { id },
+      select: {
+        id: true,
+        classId: true,
+      },
     });
 
     if (!enrollment) {

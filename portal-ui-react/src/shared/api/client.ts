@@ -7,7 +7,7 @@ export interface LoginResponse {
   user: {
     id: string
     email: string
-    role: 'ASSISTANT'
+    role: 'ADMIN' | 'ASSISTANT' | 'LECTURER' | 'STUDENT'
     fullName: string
     studentCode?: string
     cohort?: string
@@ -23,7 +23,7 @@ export interface LoginResponse {
 export interface User {
   id: string
   email: string
-  role: 'ASSISTANT'
+  role: 'ADMIN' | 'ASSISTANT' | 'LECTURER' | 'STUDENT'
   fullName: string
   studentCode?: string
   cohort?: string
@@ -68,6 +68,17 @@ export interface Class {
   lecturer?: User
 }
 
+export interface CreateClassPayload {
+  id: string
+  subjectId: string
+  lecturerId: string
+  name: string
+  maxCapacity: number
+  startDate: string
+  endDate: string
+  isActive?: boolean
+}
+
 export interface Room {
   id: string
   name: string
@@ -94,6 +105,7 @@ export interface ClassSchedule {
   startTime: string
   endTime: string
   type: 'MAIN' | 'MAKEUP' | 'EXAM'
+  category?: 'STUDY' | 'EXAM'
   status: 'ACTIVE' | 'CANCELLED'
   createdAt?: string
   updatedAt?: string
@@ -130,7 +142,7 @@ export interface Request {
 export interface CreateUserPayload {
   fullName: string
   email: string
-  role: 'ASSISTANT'
+  role: 'ADMIN' | 'ASSISTANT' | 'LECTURER' | 'STUDENT'
   studentCode?: string
   cohort?: string
   major?: string
@@ -239,7 +251,7 @@ export const api = {
     fullName: string
     email: string
     password: string
-    role?: 'ASSISTANT'
+    role?: 'ADMIN' | 'ASSISTANT' | 'LECTURER' | 'STUDENT'
     studentCode?: string
     cohort?: string
     major?: string
@@ -372,6 +384,15 @@ export const api = {
   },
 
   // Classes
+  async createClass(data: CreateClassPayload, userId: string): Promise<Class> {
+    const res = await fetch(`${CORE_API}/api/classes`, {
+      method: 'POST',
+      headers: getAuthHeaders(userId),
+      body: JSON.stringify(data),
+    })
+    return handleResponse<Class>(res)
+  },
+
   async getClasses(): Promise<Class[]> {
     console.log('[api] getClasses called', { url: `${CORE_API}/api/classes` })
     
@@ -408,12 +429,14 @@ export const api = {
     roomId?: string
     status?: 'ACTIVE' | 'CANCELLED'
     type?: 'MAIN' | 'MAKEUP' | 'EXAM'
+    category?: 'STUDY' | 'EXAM'
   }): Promise<ClassSchedule[]> {
     const query = new URLSearchParams()
     if (params?.classId) query.append('classId', params.classId)
     if (params?.roomId) query.append('roomId', params.roomId)
     if (params?.status) query.append('status', params.status)
     if (params?.type) query.append('type', params.type)
+    if (params?.category) query.append('category', params.category)
 
     const url = `${CORE_API}/api/schedules${query.toString() ? `?${query.toString()}` : ''}`
     const res = await fetch(url)
@@ -426,6 +449,7 @@ export const api = {
     startTime: string
     endTime: string
     type?: 'MAIN' | 'MAKEUP' | 'EXAM'
+    category?: 'STUDY' | 'EXAM'
     repeatType?: 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'WEEKLY_DAYS'
     repeatEndDate?: string
     numberOfSessions?: number
@@ -511,9 +535,45 @@ export const api = {
   },
 
   // Requests
-  async getRequests(): Promise<Request[]> {
-    const res = await fetch(`${CORE_API}/api/requests`)
+  async getRequests(params?: {
+    status?: 'PENDING' | 'APPROVED' | 'REJECTED'
+    type?: 'REQ_LEAVE' | 'REQ_MAKEUP'
+    senderId?: string
+    userId?: string
+  }): Promise<Request[]> {
+    const query = new URLSearchParams()
+    if (params?.status) query.append('status', params.status)
+    if (params?.type) query.append('type', params.type)
+    if (params?.senderId) query.append('senderId', params.senderId)
+
+    const url = `${CORE_API}/api/requests${query.toString() ? `?${query.toString()}` : ''}`
+    const res = await fetch(url, {
+      headers: getAuthHeaders(params?.userId),
+    })
     return handleResponse<Request[]>(res)
+  },
+
+  async getRequest(id: string, userId?: string): Promise<Request> {
+    const res = await fetch(`${CORE_API}/api/requests/${id}`, {
+      headers: getAuthHeaders(userId),
+    })
+    return handleResponse<Request>(res)
+  },
+
+  async updateRequest(
+    id: string,
+    data: {
+      status: 'PENDING' | 'APPROVED' | 'REJECTED'
+      adminNote?: string
+    },
+    userId?: string
+  ): Promise<Request> {
+    const res = await fetch(`${CORE_API}/api/requests/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(userId),
+      body: JSON.stringify(data),
+    })
+    return handleResponse<Request>(res)
   },
 
   // Notifications (Service B)
@@ -557,7 +617,7 @@ export const api = {
 
   async updateUserRole(
     userId: string,
-    role: 'ASSISTANT',
+    role: 'ADMIN' | 'ASSISTANT' | 'LECTURER' | 'STUDENT',
     adminUserId: string
   ): Promise<{ message: string; user: User }> {
     const res = await fetch(`${CORE_API}/api/users/${userId}/role`, {
@@ -567,6 +627,20 @@ export const api = {
         'x-user-id': adminUserId,
       },
       body: JSON.stringify({ role }),
+    })
+    return handleResponse(res)
+  },
+
+  async resetUserPassword(
+    userId: string,
+    adminUserId: string
+  ): Promise<{ message: string; credentials: { email: string; password: string } }> {
+    const res = await fetch(`${CORE_API}/api/users/${userId}/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': adminUserId,
+      },
     })
     return handleResponse(res)
   },

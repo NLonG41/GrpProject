@@ -7,11 +7,10 @@ import { RoomTable } from '../components/RoomTable'
 import { SchedulingBoard } from '../components/SchedulingBoard'
 import { StudentSchedule } from '../components/StudentSchedule'
 import { RequestSection } from '../components/RequestSection'
-import { AnalyticsDashboard } from '../components/AnalyticsDashboard'
 import { ProfileModal } from '../components/ProfileModal'
 import { NotificationPanel } from '../components/NotificationPanel'
 
-type SectionKey = 'master' | 'scheduling' | 'requests' | 'analytics'
+type SectionKey = 'master' | 'scheduling' | 'requests'
 type SubSectionKey = 'users' | 'subjects' | 'classes' | 'rooms' | 'schedules' | null
 
 interface MenuItem {
@@ -58,15 +57,6 @@ const menuItems: MenuItem[] = [
       </svg>
     ),
   },
-  {
-    key: 'analytics',
-    label: 'Analytics Dashboard',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
-  },
 ]
 
 export function AssistantPortal() {
@@ -75,7 +65,6 @@ export function AssistantPortal() {
   const [expandedItems, setExpandedItems] = useState<Set<SectionKey>>(new Set(['master']))
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const { user, logout } = useAuthStore()
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [showProfileModal, setShowProfileModal] = useState(false)
   const [showNotificationPanel, setShowNotificationPanel] = useState(false)
 
@@ -108,19 +97,12 @@ export function AssistantPortal() {
         } lg:translate-x-0`}
       >
         {/* Logo & Branding */}
-        <div className="px-6 pt-8 pb-6 border-b border-white/10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.4em] text-white/60 font-medium">USTH</p>
-              <p className="text-xl font-bold">Academic Desk</p>
-            </div>
-          </div>
-          <p className="text-sm text-white/70 mt-1">Assistant Portal</p>
+        <div className="h-40 border-b border-white/10 overflow-hidden">
+          <img
+            src="/assets/usth-logo.png"
+            alt="USTH Logo"
+            className="w-full h-full object-cover"
+          />
         </div>
 
         {/* Navigation */}
@@ -172,7 +154,7 @@ export function AssistantPortal() {
                 </button>
 
                 {/* Sub-items */}
-                {hasSubItems && isExpanded && (
+                {hasSubItems && isExpanded && item.subItems && (
                   <div className="mt-1 ml-4 space-y-1 border-l-2 border-white/10 pl-4">
                     {item.subItems.map((subItem) => {
                       const isSubActive = activeSection === item.key && activeSubSection === subItem.key
@@ -231,75 +213,53 @@ export function AssistantPortal() {
             </button>
             <div>
               <p className="text-sm text-gray-500">Xin chào</p>
-              <h2 className="text-xl lg:text-2xl font-semibold">{user.fullName} • Academic Assistant</h2>
+              <h2 className="text-xl lg:text-2xl font-semibold">{user.fullName}</h2>
             </div>
           </div>
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => setShowNotificationPanel(true)}
-              className="relative text-gray-500 hover:text-slate-900 transition p-2 rounded-lg hover:bg-gray-100"
-            >
-              <span className="sr-only">Notifications</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-pink-500"></span>
-            </button>
-            <div className="flex items-center gap-4 relative">
-              <div className="text-right">
-                <p className="text-sm font-semibold">Real-time Sync</p>
-                <p className="text-xs text-gray-500">Firebase status: Demo</p>
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="flex items-center gap-3 focus:outline-none"
+                onClick={() => setShowNotificationPanel(true)}
+                className="relative text-gray-500 hover:text-slate-900 transition p-2 rounded-lg hover:bg-gray-100"
+                aria-label="Notifications"
               >
-                <div className="h-12 w-12 rounded-full bg-gray-200 border border-gray-200 flex items-center justify-center overflow-hidden">
-                  <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                  </svg>
-                </div>
+                <span className="sr-only">Notifications</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-pink-500"></span>
               </button>
-              {profileMenuOpen && (
-                <div className="absolute right-0 top-14 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-2 text-sm z-50">
-                  <button
-                    onClick={() => {
-                      setShowProfileModal(true)
-                      setProfileMenuOpen(false)
-                    }}
-                    className="block w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      Xem hồ sơ
-                    </div>
-                  </button>
-                  <button
-                    onClick={logout}
-                    className="block w-full px-4 py-2 text-left text-red-500 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                      Đăng xuất
-                    </div>
-                  </button>
-                </div>
-              )}
+
+              <button
+                onClick={() => setShowProfileModal(true)}
+                className="text-gray-500 hover:text-slate-900 transition p-2 rounded-lg hover:bg-gray-100"
+                aria-label="Profile"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </button>
+
+              <button
+                onClick={logout}
+                className="text-red-500 hover:text-red-700 transition p-2 rounded-lg hover:bg-red-50"
+                aria-label="Logout"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
             </div>
           </div>
         </header>
@@ -334,7 +294,6 @@ export function AssistantPortal() {
           {activeSection === 'requests' && <RequestSection />}
 
           {/* Analytics Section */}
-          {activeSection === 'analytics' && <AnalyticsDashboard />}
         </main>
       </div>
 
